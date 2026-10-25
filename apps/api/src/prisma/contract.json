@@ -12,6 +12,21 @@
   "domain": {
     "namespaces": {
       "public": {
+        "enum": {
+          "UserRole": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "customer",
+                "value": "customer"
+              },
+              {
+                "name": "admin",
+                "value": "admin"
+              }
+            ]
+          }
+        },
         "models": {
           "User": {
             "fields": {
@@ -35,6 +50,19 @@
                   "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
+              },
+              "role": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "UserRole",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
               }
             },
             "relations": {},
@@ -48,6 +76,9 @@
                 },
                 "passwordHash": {
                   "column": "passwordHash"
+                },
+                "role": {
+                  "column": "role"
                 }
               },
               "namespaceId": "public",
@@ -64,6 +95,13 @@
         "entries": {
           "table": {
             "User": {
+              "checks": [
+                {
+                  "expression": "\"role\" IN ('customer', 'admin')",
+                  "name": "User_role_check_b66bc0f0",
+                  "prefix": "User_role_check"
+                }
+              ],
               "columns": {
                 "email": {
                   "codecId": "pg/text@1",
@@ -83,6 +121,21 @@
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
                   "nullable": false
+                },
+                "role": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "default": {
+                    "kind": "literal",
+                    "value": "customer"
+                  },
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "UserRole",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 }
               },
               "foreignKeys": [],
@@ -100,13 +153,22 @@
                 }
               ]
             }
+          },
+          "valueSet": {
+            "UserRole": {
+              "kind": "valueSet",
+              "values": [
+                "customer",
+                "admin"
+              ]
+            }
           }
         },
         "id": "public",
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "65efd3396023af32235a1a1ed9dea21147b269c5e1a77c4581057de3f57aaec5"
+    "storageHash": "df71a7a600b10a406e35979f0a71bbddef246fa4e0a9b43aecdb1044eb18940a"
   },
   "capabilities": {
     "postgres": {

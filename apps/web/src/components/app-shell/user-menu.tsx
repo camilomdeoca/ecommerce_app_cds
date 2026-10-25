@@ -2,13 +2,15 @@
 
 import { Avatar, Button, Dropdown, Label, Separator } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import type { Key } from "react";
+import { useState, type Key } from "react";
+import { apiClient } from "@/lib/api/client";
 import type { SessionUser } from "@/lib/auth";
 
-function getInitials(name: string): string {
-  const initials = name
+function getInitials(email: string): string {
+  const localPart = email.split("@")[0] ?? email;
+  const initials = localPart
     .trim()
-    .split(/\s+/)
+    .split(/[._-]+/)
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
@@ -16,29 +18,43 @@ function getInitials(name: string): string {
   return initials || "U";
 }
 
-export function UserMenu({ user }: { user: SessionUser | null }) {
+export function UserMenu({ user }: { user: SessionUser }) {
   const router = useRouter();
-  const initials = user ? getInitials(user.name) : "U";
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const initials = getInitials(user.email);
 
-  const handleAction = (key: Key) => {
+  const handleAction = async (key: Key) => {
     if (key === "profile") {
       router.push("/profile");
     } else if (key === "settings") {
       router.push("/settings");
     } else if (key === "logout") {
-      router.push("/login");
+      setIsLoggingOut(true);
+
+      try {
+        await apiClient.POST("/api/v1/auth/logout", { credentials: "include" });
+      } finally {
+        router.replace("/login");
+        router.refresh();
+      }
     }
   };
 
   return (
     <Dropdown>
-      <Button isIconOnly aria-label="Open user menu" className="rounded-full" variant="ghost">
+      <Button
+        isIconOnly
+        aria-label={`Open user menu for ${user.email}`}
+        className="rounded-full"
+        isDisabled={isLoggingOut}
+        variant="ghost"
+      >
         <Avatar size="sm">
           <Avatar.Fallback>{initials}</Avatar.Fallback>
         </Avatar>
       </Button>
       <Dropdown.Popover className="min-w-48" placement="bottom end">
-        <Dropdown.Menu onAction={handleAction}>
+        <Dropdown.Menu onAction={(key) => void handleAction(key)}>
           <Dropdown.Item id="profile" textValue="Profile">
             <Label>Profile</Label>
           </Dropdown.Item>

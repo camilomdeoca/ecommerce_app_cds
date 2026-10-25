@@ -59,8 +59,25 @@ export function TopBar({ user }: { user: SessionUser | null }) {
               <ProductSearch />
             </div>
           ) : null}
-          <div className="col-start-2 row-start-1 flex items-center justify-end lg:col-start-3">
-            <UserMenu user={user} />
+          <div className="col-start-2 row-start-1 flex items-center justify-end gap-2 lg:col-start-3">
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <>
+                <NextLink
+                  href="/login"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "shrink-0")}
+                >
+                  Sign in
+                </NextLink>
+                <NextLink
+                  href="/signup"
+                  className={cn(buttonVariants({ variant: "primary", size: "sm" }), "shrink-0")}
+                >
+                  Sign up
+                </NextLink>
+              </>
+            )}
           </div>
           <TopBarNav
             className={cn(

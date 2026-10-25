@@ -1,7 +1,14 @@
 // use prisma-8
 
+enum UserRole {
+  @@type("pg/text@1")
+  customer = "customer"
+  admin    = "admin"
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   passwordHash String
+  role         UserRole @default(customer)
 }

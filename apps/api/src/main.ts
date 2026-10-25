@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule } from "@nestjs/swagger";
+import cookieParser from "cookie-parser";
 import { openApiConfig } from "./openapi";
 
 async function bootstrap() {
@@ -9,8 +10,11 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
+  app.use(cookieParser());
+
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
+    credentials: true,
   });
 
   app.setGlobalPrefix("api/v1");
