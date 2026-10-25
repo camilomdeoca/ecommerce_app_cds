@@ -12,7 +12,8 @@
     "coverage",
     "prisma.config.ts",
     "migrations",
-    "src/prisma/seed.ts"
+    "src/prisma/seed.ts",
+    "src/s3-smoke.ts"
   ]
 }
 

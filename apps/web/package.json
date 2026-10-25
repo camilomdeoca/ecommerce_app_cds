@@ -3,25 +3,36 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "build": "dotenv run -f ../../.env -- next build",
+    "dev": "dotenv run -f ../../.env -- sh -c 'next dev -p \"$WEB_PORT\"'",
+    "start": "dotenv run -f ../../.env -- sh -c 'next start -p \"$WEB_PORT\"'",
+    "lint": "eslint",
+    "api:generate": "openapi-typescript ../api/openapi.json -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
+    "dotenv": "^18.0.9",
     "next": "16.4.2",
+    "openapi-fetch": "^0.17.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "eslint": "^9.39.5",
     "eslint-config-next": "16.4.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "globals": "^17.13.0",
+    "openapi-typescript": "^7.13.0",
+    "prettier": "^3.9.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "typescript-eslint": "^8.72.0"
   },
   "packageManager": "pnpm@11.8.0"
 }

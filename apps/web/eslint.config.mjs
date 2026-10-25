@@ -1,6 +1,6 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+// import nextTs from "eslint-config-next/typescript";
 import eslint from "@eslint/js";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import globals from "globals";
@@ -10,7 +10,7 @@ const eslintConfig = defineConfig([
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   ...nextVitals,
-  ...nextTs,
+  // ...nextTs,
   eslintPluginPrettierRecommended,
   // Override default ignores of eslint-config-next.
   {
@@ -34,6 +34,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "src/lib/api/schema.d.ts",
   ]),
   {
     rules: {

@@ -30,9 +30,8 @@ services:
     restart: unless-stopped
 
     command: >
-      server -dir=/data -s3 -s3.port=${SEAWEED_S3_PORT}
-      -s3.config=/etc/seaweedfs/s3.json
-      -filer.port=${SEAWEED_FILER_PORT}
+      mini
+      -dir=/data
       -master.volumeSizeLimitMB=1024
 
     ports:
@@ -43,7 +42,7 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      S3_BUCKET: ${STORAGE_BUCKET}
+      S3_BUCKET: ${S3_BUCKET}
 
     volumes:
       - seaweedfs_data:/data
