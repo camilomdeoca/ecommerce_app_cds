@@ -13,10 +13,17 @@
     "api:generate": "openapi-typescript ../api/openapi.json -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
+    "@heroui/react": "^3.2.6",
+    "@heroui/styles": "^3.2.6",
+    "@internationalized/date": "^3.12.4",
+    "@react-aria/ssr": "^3.10.1",
+    "@react-aria/utils": "^3.34.1",
     "dotenv": "^18.0.9",
     "next": "16.4.2",
     "openapi-fetch": "^0.17.0",
     "react": "19.3.0",
+    "react-aria": "^3.53.1",
+    "react-aria-components": "^1.22.1",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
