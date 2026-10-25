@@ -6,7 +6,7 @@
     "build": "nest build",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "lint": "oxlint --type-aware src/ test/",
+    "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
