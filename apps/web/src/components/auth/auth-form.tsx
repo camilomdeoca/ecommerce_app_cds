@@ -3,7 +3,7 @@
 import { Button, Input, Label, TextField } from "@heroui/react";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { apiClient } from "@/lib/api/client";
 import { PasswordField } from "./password-field";
 
@@ -21,7 +21,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSignup = mode === "signup";
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setConfirmPasswordError(null);

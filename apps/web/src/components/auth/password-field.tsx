@@ -1,5 +1,3 @@
-"use client";
-
 import { Button, ErrorMessage, InputGroup, Label, TextField } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
