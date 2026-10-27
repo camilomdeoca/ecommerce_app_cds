@@ -12,3 +12,10 @@ model User {
   passwordHash String
   role         UserRole @default(customer)
 }
+
+model Product {
+  id          BigInt @id @default(autoincrement())
+  name        String
+  priceCents  Int
+  description String
+}
