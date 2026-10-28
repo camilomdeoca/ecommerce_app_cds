@@ -105,15 +105,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/products/{id}/image": {
+    "/api/v1/products": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get a product image */
-        get: operations["ProductsController_getImage"];
+        /** List products */
+        get: operations["ProductsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a product */
+        get: operations["ProductsController_getById"];
         put?: never;
         post?: never;
         delete?: never;
@@ -156,8 +173,19 @@ export interface components {
             priceCents: number;
             /** @example A durable everyday backpack. */
             description: string;
-            /** @example http://localhost:3001/api/v1/products/1/image */
+            /** @example http://localhost:8333/media/products/1/image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=... */
             imageUrl: string;
+        };
+        ProductPageDto: {
+            items: components["schemas"]["ProductDto"][];
+            /** @example 1 */
+            page: number;
+            /** @example 12 */
+            pageSize: number;
+            /** @example 42 */
+            total: number;
+            /** @example 4 */
+            totalPages: number;
         };
     };
     responses: never;
@@ -342,7 +370,36 @@ export interface operations {
             };
         };
     };
-    ProductsController_getImage: {
+    ProductsController_list: {
+        parameters: {
+            query?: {
+                pageSize?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPageDto"];
+                };
+            };
+            /** @description Invalid pagination parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProductsController_getById: {
         parameters: {
             query?: never;
             header?: never;
@@ -353,15 +410,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Product image */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "image/jpeg": string;
-                    "image/png": string;
-                    "image/webp": string;
+                    "application/json": components["schemas"]["ProductDto"];
                 };
             };
             /** @description Invalid product id */
@@ -371,7 +425,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Product or product image not found */
+            /** @description Product not found */
             404: {
                 headers: {
                     [name: string]: unknown;

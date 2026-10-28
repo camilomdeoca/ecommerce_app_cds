@@ -205,9 +205,53 @@
         ]
       }
     },
-    "/api/v1/products/{id}/image": {
+    "/api/v1/products": {
       "get": {
-        "operationId": "ProductsController_getImage",
+        "operationId": "ProductsController_list",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 12,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters"
+          }
+        },
+        "summary": "List products",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/products/{id}": {
+      "get": {
+        "operationId": "ProductsController_getById",
         "parameters": [
           {
             "name": "id",
@@ -221,24 +265,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Product image",
+            "description": "",
             "content": {
-              "image/jpeg": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "image/png": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "image/webp": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "$ref": "#/components/schemas/ProductDto"
                 }
               }
             }
@@ -247,10 +278,10 @@
             "description": "Invalid product id"
           },
           "404": {
-            "description": "Product or product image not found"
+            "description": "Product not found"
           }
         },
-        "summary": "Get a product image",
+        "summary": "Get a product",
         "tags": [
           "products"
         ]
@@ -362,7 +393,7 @@
           },
           "imageUrl": {
             "type": "string",
-            "example": "http://localhost:3001/api/v1/products/1/image"
+            "example": "http://localhost:8333/media/products/1/image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=..."
           }
         },
         "required": [
@@ -371,6 +402,40 @@
           "priceCents",
           "description",
           "imageUrl"
+        ]
+      },
+      "ProductPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductDto"
+            }
+          },
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "number",
+            "example": 12
+          },
+          "total": {
+            "type": "number",
+            "example": 42
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 4
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
         ]
       }
     }

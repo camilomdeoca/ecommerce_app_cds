@@ -40,8 +40,12 @@ function TopBarNav({ navItems, pathname, className }: TopBarNavProps) {
   );
 }
 
-export function TopBar({ user }: { user: SessionUser | null }) {
-  const pathname = usePathname();
+type TopBarContentProps = {
+  user: SessionUser | null;
+  pathname: string;
+};
+
+function TopBarContent({ user, pathname }: TopBarContentProps) {
   const navItems = getNavItems(user?.role === "admin");
   const showSearch = isSearchVisible(pathname);
 
@@ -91,4 +95,14 @@ export function TopBar({ user }: { user: SessionUser | null }) {
       </div>
     </header>
   );
+}
+
+export function TopBar({ user }: { user: SessionUser | null }) {
+  const pathname = usePathname();
+
+  return <TopBarContent user={user} pathname={pathname} />;
+}
+
+export function TopBarFallback() {
+  return <TopBarContent user={null} pathname="" />;
 }

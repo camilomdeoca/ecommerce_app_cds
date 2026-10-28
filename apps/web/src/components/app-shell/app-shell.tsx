@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { getCurrentUser } from "@/lib/auth";
-import { TopBar } from "./top-bar";
+import { TopBar, TopBarFallback } from "./top-bar";
 
 async function AuthenticatedTopBar() {
   const user = await getCurrentUser();
@@ -11,7 +11,7 @@ async function AuthenticatedTopBar() {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
-      <Suspense fallback={<TopBar user={null} />}>
+      <Suspense fallback={<TopBarFallback />}>
         <AuthenticatedTopBar />
       </Suspense>
       <main className="flex flex-1 flex-col">{children}</main>

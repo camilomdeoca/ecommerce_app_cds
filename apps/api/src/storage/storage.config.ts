@@ -4,6 +4,7 @@ export const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"
 
 export type StorageConfig = {
   endpoint: string;
+  publicEndpoint: string;
   region: string;
   bucket: string;
   accessKeyId: string;
@@ -21,8 +22,11 @@ function requireEnv(name: string): string {
 }
 
 export function getStorageConfig(): StorageConfig {
+  const endpoint = requireEnv("S3_ENDPOINT");
+
   return {
-    endpoint: requireEnv("S3_ENDPOINT"),
+    endpoint,
+    publicEndpoint: process.env.S3_PUBLIC_URL || endpoint,
     region: requireEnv("S3_REGION"),
     bucket: requireEnv("S3_BUCKET"),
     accessKeyId: requireEnv("AWS_ACCESS_KEY_ID"),

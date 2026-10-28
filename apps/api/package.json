@@ -6,7 +6,7 @@
     "build": "nest build",
     "compile": "tsc --noEmit",
     "deploy": "nest deploy",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"seed/**/*.ts\"",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,10 +20,12 @@
     "db:plan": "dotenv run -f ../../.env -- prisma migration plan",
     "db:migrate": "dotenv run -f ../../.env -- prisma db migrate",
     "db:verify": "dotenv run -f ../../.env -- prisma db verify",
+    "db:seed": "dotenv run -f ../../.env -- tsx seed/seed-products.ts",
     "openapi:generate": "dotenv run -f ../../.env -- tsx src/generate-openapi.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/client-s3": "3.1157.0",
+    "@aws-sdk/s3-request-presigner": "3.1157.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.0.1",

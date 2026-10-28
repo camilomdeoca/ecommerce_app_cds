@@ -1,7 +1,6 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { Readable } from "node:stream";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { StorageService } from "./storage.service.js";
+import { PRODUCT_IMAGE_URL_EXPIRES_SECONDS, StorageService } from "./storage.service.js";
 
 type MockClient = {
   send: ReturnType<typeof vi.fn>;
@@ -19,6 +18,7 @@ function createService(): { service: StorageService; send: MockClient["send"] } 
 describe("StorageService", () => {
   beforeEach(() => {
     vi.stubEnv("S3_ENDPOINT", "http://localhost:8333");
+    vi.stubEnv("S3_PUBLIC_URL", "http://localhost:8333");
     vi.stubEnv("S3_REGION", "us-east-1");
     vi.stubEnv("S3_BUCKET", "media");
     vi.stubEnv("AWS_ACCESS_KEY_ID", "test-key");
@@ -51,28 +51,18 @@ describe("StorageService", () => {
     });
   });
 
-  it("streams a product image with its stored metadata", async () => {
-    const { service, send } = createService();
-    const body = Readable.from(Buffer.from("image-bytes"));
-    send.mockResolvedValue({
-      Body: body,
-      ContentType: "image/webp",
-      ContentLength: 11,
-    });
+  it("returns a presigned public URL for a product image", async () => {
+    const { service } = createService();
 
-    const image = await service.getProductImage(7n);
+    const imageUrl = await service.getProductImageUrl(7n);
+    const parsedUrl = new URL(imageUrl);
 
-    const command = send.mock.calls[0]?.[0] as GetObjectCommand;
-    expect(command).toBeInstanceOf(GetObjectCommand);
-    expect(command.input).toEqual({
-      Bucket: "media",
-      Key: "products/7/image",
-    });
-    expect(image).toEqual({
-      body,
-      contentType: "image/webp",
-      contentLength: 11,
-    });
+    expect(parsedUrl.origin).toBe("http://localhost:8333");
+    expect(parsedUrl.pathname).toBe("/media/products/7/image");
+    expect(parsedUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();
+    expect(parsedUrl.searchParams.get("X-Amz-Expires")).toBe(
+      String(PRODUCT_IMAGE_URL_EXPIRES_SECONDS),
+    );
   });
 
   it("deletes the product image object", async () => {

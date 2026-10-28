@@ -3,12 +3,11 @@ import {
   Controller,
   FileTypeValidator,
   Get,
-  Header,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
   Post,
-  StreamableFile,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -26,13 +25,16 @@ import {
   ApiOperation,
   ApiParam,
   ApiPayloadTooLargeResponse,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { AdminGuard } from "../auth/guards/role.guards.js";
 import { ALLOWED_IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from "../storage/storage.config.js";
 import { CreateProductDto } from "./dto/create-product.dto.js";
+import { ListProductsQueryDto } from "./dto/list-products-query.dto.js";
 import { ProductDto } from "./dto/product.dto.js";
+import { ProductPageDto } from "./dto/product-page.dto.js";
 import { ParseBigIntPipe } from "./parse-bigint.pipe.js";
 import { ProductsService } from "./products.service.js";
 
@@ -90,26 +92,23 @@ export class ProductsController {
     return this.productsService.create(dto, file);
   }
 
-  @Get("products/:id/image")
-  @Header("Cache-Control", "public, max-age=31536000, immutable")
-  @ApiOperation({ summary: "Get a product image" })
-  @ApiParam({ name: "id", type: String, example: "1" })
-  @ApiOkResponse({
-    description: "Product image",
-    content: {
-      "image/jpeg": { schema: { type: "string", format: "binary" } },
-      "image/png": { schema: { type: "string", format: "binary" } },
-      "image/webp": { schema: { type: "string", format: "binary" } },
-    },
-  })
-  @ApiBadRequestResponse({ description: "Invalid product id" })
-  @ApiNotFoundResponse({ description: "Product or product image not found" })
-  async getImage(@Param("id", ParseBigIntPipe) id: bigint): Promise<StreamableFile> {
-    const image = await this.productsService.getImage(id);
+  @Get("products")
+  @ApiOperation({ summary: "List products" })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "pageSize", required: false, type: Number, example: 12 })
+  @ApiOkResponse({ type: ProductPageDto })
+  @ApiBadRequestResponse({ description: "Invalid pagination parameters" })
+  async list(@Query() query: ListProductsQueryDto): Promise<ProductPageDto> {
+    return this.productsService.list(query);
+  }
 
-    return new StreamableFile(image.body, {
-      type: image.contentType,
-      length: image.contentLength,
-    });
+  @Get("products/:id")
+  @ApiOperation({ summary: "Get a product" })
+  @ApiParam({ name: "id", type: String, example: "1" })
+  @ApiOkResponse({ type: ProductDto })
+  @ApiBadRequestResponse({ description: "Invalid product id" })
+  @ApiNotFoundResponse({ description: "Product not found" })
+  async getById(@Param("id", ParseBigIntPipe) id: bigint): Promise<ProductDto> {
+    return this.productsService.getById(id);
   }
 }

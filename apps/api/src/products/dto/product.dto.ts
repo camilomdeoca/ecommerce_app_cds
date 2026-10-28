@@ -15,7 +15,8 @@ export class ProductDto {
 
   @ApiProperty({
     type: String,
-    example: "http://localhost:3001/api/v1/products/1/image",
+    example:
+      "http://localhost:8333/media/products/1/image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=...",
   })
   imageUrl!: string;
 }
