@@ -4,6 +4,7 @@ import {
   getProducts,
   getProductsPageHref,
   parsePage,
+  parseSearch,
   type ProductDto,
   type ProductPageDto,
 } from "./products";
@@ -43,13 +44,43 @@ describe("parsePage", () => {
   });
 });
 
+describe("parseSearch", () => {
+  it("defaults to an empty search", () => {
+    expect(parseSearch(undefined)).toBe("");
+    expect(parseSearch("")).toBe("");
+    expect(parseSearch("   ")).toBe("");
+  });
+
+  it("trims search values and uses the first array entry", () => {
+    expect(parseSearch("  backpack  ")).toBe("backpack");
+    expect(parseSearch(["mug", "backpack"])).toBe("mug");
+  });
+
+  it("limits searches to 100 characters", () => {
+    expect(parseSearch("a".repeat(101))).toHaveLength(100);
+  });
+});
+
 describe("getProductsPageHref", () => {
   it("uses the clean catalog path for the first page", () => {
     expect(getProductsPageHref(1)).toBe("/products");
   });
 
+  it("uses the clean catalog path for a blank search", () => {
+    expect(getProductsPageHref(1, "   ")).toBe("/products");
+  });
+
   it("includes the page query for later pages", () => {
     expect(getProductsPageHref(2)).toBe("/products?page=2");
+  });
+
+  it("preserves the search query across pages", () => {
+    expect(getProductsPageHref(1, "canvas backpack")).toBe("/products?q=canvas+backpack");
+    expect(getProductsPageHref(2, "canvas backpack")).toBe("/products?page=2&q=canvas+backpack");
+  });
+
+  it("encodes search characters", () => {
+    expect(getProductsPageHref(1, "mug & cup")).toBe("/products?q=mug+%26+cup");
   });
 });
 
@@ -77,9 +108,24 @@ describe("product API helpers", () => {
     );
 
     await expect(getProducts(2)).resolves.toEqual(productPage);
-    expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/v1/products?page=2&pageSize=12", {
+    expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/v1/products?page=2&pageSize=20", {
       cache: "no-store",
     });
+  });
+
+  it("includes the search query without caching", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify(productPage), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await expect(getProducts(1, "  canvas backpack  ")).resolves.toEqual(productPage);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/api/v1/products?page=1&pageSize=20&q=canvas+backpack",
+      { cache: "no-store" },
+    );
   });
 
   it("throws when the product list request fails", async () => {

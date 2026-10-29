@@ -96,8 +96,16 @@ export class ProductsController {
   @ApiOperation({ summary: "List products" })
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "pageSize", required: false, type: Number, example: 12 })
+  @ApiQuery({
+    name: "q",
+    required: false,
+    type: String,
+    maxLength: 100,
+    example: "backpack",
+    description: "Searches product names and descriptions, most relevant first",
+  })
   @ApiOkResponse({ type: ProductPageDto })
-  @ApiBadRequestResponse({ description: "Invalid pagination parameters" })
+  @ApiBadRequestResponse({ description: "Invalid pagination or search parameters" })
   async list(@Query() query: ListProductsQueryDto): Promise<ProductPageDto> {
     return this.productsService.list(query);
   }

@@ -1,6 +1,7 @@
 import type { components } from "./schema";
 
 export const PRODUCTS_PAGE_SIZE = 20;
+export const MAX_SEARCH_LENGTH = 100;
 
 export type ProductDto = components["schemas"]["ProductDto"];
 export type ProductPageDto = components["schemas"]["ProductPageDto"];
@@ -21,15 +22,42 @@ export function parsePage(value: string | string[] | undefined): number {
   return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
-export function getProductsPageHref(page: number): string {
-  return page <= 1 ? "/products" : `/products?page=${page}`;
+export function parseSearch(value: string | string[] | undefined): string {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+
+  return rawValue?.trim().slice(0, MAX_SEARCH_LENGTH) ?? "";
 }
 
-export async function getProducts(page: number): Promise<ProductPageDto> {
-  const response = await fetch(
-    `${getApiUrl()}/api/v1/products?page=${page}&pageSize=${PRODUCTS_PAGE_SIZE}`,
-    { cache: "no-store" },
-  );
+export function getProductsPageHref(page: number, search = ""): string {
+  const params = new URLSearchParams();
+  const searchTerm = parseSearch(search);
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  if (searchTerm) {
+    params.set("q", searchTerm);
+  }
+
+  const query = params.toString();
+
+  return query ? `/products?${query}` : "/products";
+}
+
+export async function getProducts(page: number, search = ""): Promise<ProductPageDto> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(PRODUCTS_PAGE_SIZE),
+  });
+  const searchTerm = parseSearch(search);
+
+  if (searchTerm) {
+    params.set("q", searchTerm);
+  }
+
+  const response = await fetch(`${getApiUrl()}/api/v1/products?${params.toString()}`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to load products: ${response.status}`);

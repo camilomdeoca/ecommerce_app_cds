@@ -30,11 +30,20 @@ describe("ProductsService", () => {
   const create = vi.fn();
   const first = vi.fn();
   const deleteProduct = vi.fn();
-  const where = vi.fn(() => ({ delete: deleteProduct }));
+  const searchAggregate = vi.fn();
+  const searchAll = vi.fn();
+  const searchLimit = vi.fn(() => ({ all: searchAll }));
+  const searchOffset = vi.fn(() => ({ limit: searchLimit }));
+  const searchOrderBy = vi.fn(() => ({ offset: searchOffset, aggregate: searchAggregate }));
+  const where = vi.fn((filter: unknown) =>
+    typeof filter === "function"
+      ? { orderBy: searchOrderBy, aggregate: searchAggregate }
+      : { delete: deleteProduct },
+  );
   const all = vi.fn();
   const limit = vi.fn(() => ({ all }));
   const offset = vi.fn(() => ({ limit }));
-  const orderBy = vi.fn(() => ({ offset }));
+  const orderBy = vi.fn(() => ({ offset, aggregate }));
   const aggregate = vi.fn();
   const uploadProductImage = vi.fn();
   const getProductImageUrl = vi.fn();
@@ -44,6 +53,11 @@ describe("ProductsService", () => {
     create.mockReset();
     first.mockReset();
     deleteProduct.mockReset();
+    searchAggregate.mockReset();
+    searchAll.mockReset();
+    searchLimit.mockClear();
+    searchOffset.mockClear();
+    searchOrderBy.mockClear();
     where.mockClear();
     all.mockReset();
     limit.mockClear();
@@ -155,6 +169,39 @@ describe("ProductsService", () => {
       total: 25,
       totalPages: 3,
     });
+  });
+
+  it("searches names and descriptions with filtered totals and relevance ordering", async () => {
+    searchAll.mockResolvedValue([product]);
+    searchAggregate.mockResolvedValue({ total: 1 });
+
+    const result = await service.list({ page: 1, pageSize: 12, q: "  backpack  " });
+
+    expect(where).toHaveBeenCalledTimes(1);
+    expect(where).toHaveBeenCalledWith(expect.any(Function));
+    expect(searchOrderBy).toHaveBeenCalledTimes(1);
+    const orders = (searchOrderBy.mock.calls[0] as unknown[] | undefined)?.[0];
+    expect(orders).toHaveLength(2);
+    expect(searchOffset).toHaveBeenCalledWith(0);
+    expect(searchLimit).toHaveBeenCalledWith(12);
+    expect(searchAll).toHaveBeenCalledTimes(1);
+    expect(searchAggregate).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      page: 1,
+      pageSize: 12,
+      total: 1,
+      totalPages: 1,
+    });
+  });
+
+  it("treats a blank search as no filter", async () => {
+    all.mockResolvedValue([]);
+    aggregate.mockResolvedValue({ total: 0 });
+
+    await service.list({ page: 1, pageSize: 12, q: "   " });
+
+    expect(where).not.toHaveBeenCalled();
+    expect(orderBy).toHaveBeenCalledTimes(1);
   });
 
   it("returns an empty page when there are no products", async () => {

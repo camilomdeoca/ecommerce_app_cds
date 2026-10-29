@@ -4,6 +4,7 @@ import { getProductsPageHref } from "@/lib/api/products";
 
 type ProductPaginationProps = {
   page: number;
+  search?: string;
   total: number;
   totalPages: number;
 };
@@ -11,7 +12,7 @@ type ProductPaginationProps = {
 const paginationLinkClassName = cn(buttonVariants({ variant: "secondary", size: "sm" }));
 const disabledLinkClassName = cn(paginationLinkClassName, "pointer-events-none opacity-50");
 
-export function ProductPagination({ page, total, totalPages }: ProductPaginationProps) {
+export function ProductPagination({ page, search, total, totalPages }: ProductPaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
@@ -29,7 +30,10 @@ export function ProductPagination({ page, total, totalPages }: ProductPagination
       </p>
       <div className="flex items-center gap-2">
         {hasPreviousPage ? (
-          <NextLink className={paginationLinkClassName} href={getProductsPageHref(page - 1)}>
+          <NextLink
+            className={paginationLinkClassName}
+            href={getProductsPageHref(page - 1, search)}
+          >
             Previous
           </NextLink>
         ) : (
@@ -41,7 +45,10 @@ export function ProductPagination({ page, total, totalPages }: ProductPagination
           Page {page} of {totalPages}
         </span>
         {hasNextPage ? (
-          <NextLink className={paginationLinkClassName} href={getProductsPageHref(page + 1)}>
+          <NextLink
+            className={paginationLinkClassName}
+            href={getProductsPageHref(page + 1, search)}
+          >
             Next
           </NextLink>
         ) : (

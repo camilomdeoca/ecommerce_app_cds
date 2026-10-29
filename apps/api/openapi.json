@@ -210,6 +210,17 @@
         "operationId": "ProductsController_list",
         "parameters": [
           {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Searches product names and descriptions, most relevant first",
+            "schema": {
+              "maxLength": 100,
+              "example": "backpack",
+              "type": "string"
+            }
+          },
+          {
             "name": "pageSize",
             "required": false,
             "in": "query",
@@ -240,7 +251,7 @@
             }
           },
           "400": {
-            "description": "Invalid pagination parameters"
+            "description": "Invalid pagination or search parameters"
           }
         },
         "summary": "List products",

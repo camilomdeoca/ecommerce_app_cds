@@ -289,6 +289,64 @@ describe("Products (e2e)", () => {
     expect(outOfRangePageBody.items).toEqual([]);
   });
 
+  it("searches names and descriptions, ranking name matches first", async () => {
+    const adminAgent = await createAdminAgent();
+    const searchToken = `relevance${randomUUID().replaceAll("-", "")}`;
+
+    const nameMatchResponse = await postProduct(adminAgent, {
+      name: `E2E ${searchToken} backpack`,
+      priceCents: "1000",
+      description: "A useful bag.",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const nameMatch = nameMatchResponse.body as { id: string };
+
+    const descriptionMatchResponse = await postProduct(adminAgent, {
+      name: "E2E description match",
+      priceCents: "1000",
+      description: `A useful bag with ${searchToken}.`,
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const descriptionMatch = descriptionMatchResponse.body as { id: string };
+
+    createdProductIds.push(BigInt(nameMatch.id), BigInt(descriptionMatch.id));
+
+    const searchResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${encodeURIComponent(searchToken.toUpperCase())}&pageSize=100`)
+      .expect(200);
+    const searchBody = searchResponse.body as ProductListBody;
+
+    expect(searchBody.total).toBe(2);
+    expect(searchBody.totalPages).toBe(1);
+    expect(searchBody.items.map((item) => item.id)).toEqual([nameMatch.id, descriptionMatch.id]);
+
+    const partialResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${encodeURIComponent(searchToken.slice(0, 12))}&pageSize=100`)
+      .expect(200);
+    const partialBody = partialResponse.body as ProductListBody;
+
+    expect(partialBody.total).toBe(2);
+    expect(partialBody.items.map((item) => item.id).sort()).toEqual(
+      [nameMatch.id, descriptionMatch.id].sort(),
+    );
+
+    const firstPageResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${encodeURIComponent(searchToken)}&page=1&pageSize=1`)
+      .expect(200);
+    const firstPageBody = firstPageResponse.body as ProductListBody;
+
+    expect(firstPageBody.total).toBe(2);
+    expect(firstPageBody.totalPages).toBe(2);
+    expect(firstPageBody.items.map((item) => item.id)).toEqual([nameMatch.id]);
+
+    const secondPageResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${encodeURIComponent(searchToken)}&page=2&pageSize=1`)
+      .expect(200);
+    const secondPageBody = secondPageResponse.body as ProductListBody;
+
+    expect(secondPageBody.items.map((item) => item.id)).toEqual([descriptionMatch.id]);
+  });
+
   it("rejects invalid images, oversized images, and missing fields", async () => {
     const adminAgent = await createAdminAgent();
 
@@ -319,8 +377,11 @@ describe("Products (e2e)", () => {
     await request(app.getHttpServer()).get("/api/v1/products/999999999").expect(404);
   });
 
-  it("rejects invalid pagination parameters", async () => {
+  it("rejects invalid pagination and search parameters", async () => {
     await request(app.getHttpServer()).get("/api/v1/products?page=0").expect(400);
     await request(app.getHttpServer()).get("/api/v1/products?pageSize=101").expect(400);
+    await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${"a".repeat(101)}`)
+      .expect(400);
   });
 });

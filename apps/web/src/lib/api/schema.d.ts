@@ -373,6 +373,8 @@ export interface operations {
     ProductsController_list: {
         parameters: {
             query?: {
+                /** @description Searches product names and descriptions, most relevant first */
+                q?: string;
                 pageSize?: number;
                 page?: number;
             };
@@ -390,7 +392,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProductPageDto"];
                 };
             };
-            /** @description Invalid pagination parameters */
+            /** @description Invalid pagination or search parameters */
             400: {
                 headers: {
                     [name: string]: unknown;

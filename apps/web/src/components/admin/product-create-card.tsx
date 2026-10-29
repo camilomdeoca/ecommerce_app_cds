@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Card, Input, Label, NumberField, TextArea, TextField } from "@heroui/react";
+import Image from "next/image";
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { apiClient } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -200,10 +201,13 @@ export function ProductCreateCard() {
               className="flex items-center gap-3 rounded-lg border border-success/40 bg-success/10 p-3"
               role="status"
             >
-              <img
+              <Image
                 alt={createdProduct.name}
                 className="h-16 w-16 rounded-md object-cover"
+                height={64}
                 src={createdProduct.imageUrl}
+                unoptimized
+                width={64}
               />
               <div>
                 <p className="font-medium">Product created.</p>
@@ -279,10 +283,13 @@ export function ProductCreateCard() {
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Image</span>
             {previewUrl ? (
-              <img
+              <Image
                 alt="Selected product preview"
                 className="h-40 w-40 rounded-lg border border-border object-cover"
+                height={160}
                 src={previewUrl}
+                unoptimized
+                width={160}
               />
             ) : (
               <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted">
