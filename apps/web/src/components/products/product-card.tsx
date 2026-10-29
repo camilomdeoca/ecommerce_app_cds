@@ -33,7 +33,7 @@ export function ProductCard({ product }: { product: ProductDto }) {
         <p className="line-clamp-2 text-sm text-muted">{product.description}</p>
       </Card.Content>
       <Card.Footer>
-        <AddToCartButton className="w-full" productName={product.name} />
+        <AddToCartButton className="w-full" productId={product.id} productName={product.name} />
       </Card.Footer>
     </Card>
   );

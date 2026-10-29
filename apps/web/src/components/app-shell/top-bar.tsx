@@ -1,6 +1,7 @@
 "use client";
 
 import { buttonVariants, cn } from "@heroui/react";
+import { ShoppingCart } from "lucide-react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import type { SessionUser } from "@/lib/auth";
@@ -64,6 +65,18 @@ function TopBarContent({ user, pathname }: TopBarContentProps) {
             </div>
           ) : null}
           <div className="col-start-2 row-start-1 flex items-center justify-end gap-2 lg:col-start-3">
+            <NextLink
+              href="/cart"
+              aria-current={isActivePath(pathname, "/cart") ? "page" : undefined}
+              aria-label="Cart"
+              className={cn(
+                buttonVariants({ isIconOnly: true, variant: "ghost", size: "sm" }),
+                "shrink-0",
+                isActivePath(pathname, "/cart") ? "bg-default text-foreground" : "text-muted",
+              )}
+            >
+              <ShoppingCart aria-hidden="true" />
+            </NextLink>
             {user ? (
               <UserMenu user={user} />
             ) : (

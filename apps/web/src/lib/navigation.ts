@@ -5,7 +5,6 @@ export type NavItem = {
 
 const BASE_NAV_ITEMS: readonly NavItem[] = [
   { label: "Products", href: "/products" },
-  { label: "Cart", href: "/cart" },
   { label: "Orders", href: "/orders" },
 ];
 
@@ -27,4 +26,17 @@ export function isActivePath(pathname: string, href: string): boolean {
 
 export function isSearchVisible(pathname: string): boolean {
   return SEARCH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+export function getSafeRedirectPath(
+  value: string | string[] | null | undefined,
+  fallback = "/",
+): string {
+  const path = Array.isArray(value) ? value[0] : value;
+
+  if (!path || !path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+    return fallback;
+  }
+
+  return path;
 }

@@ -2,17 +2,27 @@
 
 import { Button, Input, Label, TextField } from "@heroui/react";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
 import { apiClient } from "@/lib/api/client";
+import { getSafeRedirectPath } from "@/lib/navigation";
 import { PasswordField } from "./password-field";
 
 type AuthFormProps = {
   mode: "login" | "signup";
 };
 
+function getAuthSwitchHref(mode: AuthFormProps["mode"], next: string | null): string {
+  const path = mode === "signup" ? "/login" : "/signup";
+
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = getSafeRedirectPath(searchParams.get("next"));
+  const switchHref = getAuthSwitchHref(mode, searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,7 +66,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   };
 
@@ -116,10 +126,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       <p className="text-center text-sm text-muted">
         {isSignup ? "Already have an account?" : "New here?"}{" "}
-        <NextLink
-          className="font-medium text-foreground underline"
-          href={isSignup ? "/login" : "/signup"}
-        >
+        <NextLink className="font-medium text-foreground underline" href={switchHref}>
           {isSignup ? "Sign in" : "Create an account"}
         </NextLink>
       </p>

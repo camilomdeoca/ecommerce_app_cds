@@ -19,3 +19,14 @@ model Product {
   priceCents  Int
   description String
 }
+
+model CartItem {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  productId BigInt
+  quantity  Int    @default(1)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}

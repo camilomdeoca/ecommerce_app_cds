@@ -43,7 +43,11 @@ export async function ProductDetail({ params }: ProductDetailProps) {
             <p className="text-2xl font-semibold">{formatPriceCents(product.priceCents)}</p>
           </div>
           <p className="whitespace-pre-line text-muted">{product.description}</p>
-          <AddToCartButton className="w-full sm:w-fit" productName={product.name} />
+          <AddToCartButton
+            className="w-full sm:w-fit"
+            productId={product.id}
+            productName={product.name}
+          />
         </div>
       </div>
     </section>
