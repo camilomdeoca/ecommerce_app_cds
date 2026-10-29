@@ -30,8 +30,13 @@ describe("CartService", () => {
   const cartCreate = vi.fn();
   const cartUpdate = vi.fn();
   const cartDelete = vi.fn();
-  const cartWhere = vi.fn((filter: Record<string, unknown>) => {
-    if (filter.userId !== undefined) {
+  const cartDeleteAll = vi.fn();
+  const cartWhere = vi.fn((filter: unknown) => {
+    if (typeof filter === "function") {
+      return { deleteAll: cartDeleteAll };
+    }
+
+    if (typeof filter === "object" && filter !== null && "userId" in filter) {
       return { include: cartInclude };
     }
 
@@ -49,6 +54,7 @@ describe("CartService", () => {
     cartCreate.mockReset();
     cartUpdate.mockReset();
     cartDelete.mockReset();
+    cartDeleteAll.mockReset();
     cartWhere.mockClear();
     productFirst.mockReset();
     getProductImageUrl.mockReset();
@@ -103,6 +109,38 @@ describe("CartService", () => {
       totalQuantity: 2,
       totalCents: 9998,
     });
+  });
+
+  it("returns checkout snapshots of cart items", async () => {
+    cartAll.mockResolvedValue([cartItem]);
+
+    const result = await service.getCartItems(7);
+
+    expect(cartWhere).toHaveBeenCalledWith({ userId: 7 });
+    expect(cartInclude).toHaveBeenCalledWith("product");
+    expect(result).toEqual([
+      {
+        productId: product.id,
+        name: product.name,
+        priceCents: product.priceCents,
+        quantity: 2,
+        active: true,
+      },
+    ]);
+  });
+
+  it("clears selected cart items", async () => {
+    await service.clearCartItems(7, [product.id]);
+
+    expect(cartWhere).toHaveBeenCalledWith(expect.any(Function));
+    expect(cartDeleteAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not query the cart when there are no items to clear", async () => {
+    await service.clearCartItems(7, []);
+
+    expect(cartWhere).not.toHaveBeenCalled();
+    expect(cartDeleteAll).not.toHaveBeenCalled();
   });
 
   it("creates a cart item when the product is not already in the cart", async () => {

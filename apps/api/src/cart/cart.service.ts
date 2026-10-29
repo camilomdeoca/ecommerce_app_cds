@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { and } from "@prisma/orm-postgres/orm-client";
 import { PrismaService } from "../prisma.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { MAX_CART_QUANTITY } from "./cart.constants.js";
@@ -20,6 +21,14 @@ type CartItemRecord = {
   product: CartProductRecord;
 };
 
+export type CartItemSnapshot = {
+  productId: bigint;
+  name: string;
+  priceCents: number;
+  quantity: number;
+  active: boolean;
+};
+
 @Injectable()
 export class CartService {
   constructor(
@@ -39,6 +48,31 @@ export class CartService {
       totalQuantity: cartItems.reduce((total, item) => total + item.quantity, 0),
       totalCents: cartItems.reduce((total, item) => total + item.lineTotalCents, 0),
     };
+  }
+
+  async getCartItems(userId: number): Promise<CartItemSnapshot[]> {
+    const items = await this.prisma.db.orm.public.CartItem.where({ userId })
+      .include("product")
+      .orderBy((item) => item.id.asc())
+      .all();
+
+    return items.map((item) => ({
+      productId: BigInt(item.product.id),
+      name: item.product.name,
+      priceCents: item.product.priceCents,
+      quantity: item.quantity,
+      active: item.product.active,
+    }));
+  }
+
+  async clearCartItems(userId: number, productIds: bigint[]): Promise<void> {
+    if (productIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.db.orm.public.CartItem.where((item) =>
+      and(item.userId.eq(userId), item.productId.in(productIds)),
+    ).deleteAll();
   }
 
   async addItem(userId: number, dto: AddCartItemDto): Promise<CartDto> {

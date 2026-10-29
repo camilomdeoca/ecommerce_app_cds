@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, buttonVariants, cn } from "@heroui/react";
+import { buttonVariants, cn } from "@heroui/react";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api/client";
 import { MAX_CART_QUANTITY, type CartDto, type CartItemDto } from "@/lib/cart";
 import { formatPriceCents } from "@/lib/product-price";
 import { CartProductCard } from "./cart-product-card";
+import { CheckoutButton } from "./checkout-button";
 
 type CartViewProps = {
   initialCart: CartDto;
@@ -25,7 +26,7 @@ export function CartView({ initialCart }: CartViewProps) {
   const [pendingProductId, setPendingProductId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const applyResult = (productId: string, result: CartMutationResult) => {
+  const applyResult = (result: CartMutationResult) => {
     if (result.response.status === 401) {
       setPendingProductId(null);
       router.push("/login?next=/cart");
@@ -61,7 +62,7 @@ export function CartView({ initialCart }: CartViewProps) {
         credentials: "include",
       });
 
-      applyResult(item.product.id, result);
+      applyResult(result);
     } catch {
       setError("Could not update your cart. Please try again.");
       setPendingProductId(null);
@@ -78,7 +79,7 @@ export function CartView({ initialCart }: CartViewProps) {
         credentials: "include",
       });
 
-      applyResult(item.product.id, result);
+      applyResult(result);
     } catch {
       setError("Could not update your cart. Please try again.");
       setPendingProductId(null);
@@ -136,10 +137,7 @@ export function CartView({ initialCart }: CartViewProps) {
               <span>{formatPriceCents(cart.totalCents)}</span>
             </div>
           </div>
-          <Button fullWidth isDisabled type="button" variant="primary">
-            Checkout
-          </Button>
-          <p className="text-center text-xs text-muted">Checkout is coming soon.</p>
+          <CheckoutButton />
         </aside>
       </div>
     </div>

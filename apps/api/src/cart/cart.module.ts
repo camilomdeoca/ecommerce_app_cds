@@ -9,5 +9,6 @@ import { CartService } from "./cart.service.js";
   imports: [AuthModule, PrismaModule, StorageModule],
   controllers: [CartController],
   providers: [CartService],
+  exports: [CartService],
 })
 export class CartModule {}

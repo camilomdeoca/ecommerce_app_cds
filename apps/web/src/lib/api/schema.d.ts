@@ -210,6 +210,57 @@ export interface paths {
         patch: operations["CartController_updateItem"];
         trace?: never;
     };
+    "/api/v1/checkout/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a Stripe Checkout Session for the current cart */
+        post: operations["CheckoutController_createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/checkout/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a completed Stripe Checkout Session */
+        post: operations["CheckoutController_confirmCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the current user's paid orders */
+        get: operations["OrdersController_listOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -283,6 +334,40 @@ export interface components {
         UpdateCartItemDto: {
             /** @example 2 */
             quantity: number;
+        };
+        CheckoutSessionDto: {
+            /** @example https://checkout.stripe.com/c/pay/cs_test_... */
+            url: string;
+        };
+        ConfirmCheckoutDto: {
+            /** @example cs_test_a1b2c3 */
+            sessionId: string;
+        };
+        OrderItemDto: {
+            /** @example 1 */
+            productId: string;
+            /** @example Canvas backpack */
+            name: string;
+            /** @example 4999 */
+            priceCents: number;
+            /** @example 2 */
+            quantity: number;
+            /** @example 9998 */
+            lineTotalCents: number;
+        };
+        OrderDto: {
+            /** @example 1 */
+            id: number;
+            /**
+             * @example paid
+             * @enum {string}
+             */
+            status: "pending" | "paid";
+            /** @example 9998 */
+            totalCents: number;
+            /** @example 2026-10-29T21:34:00.000Z */
+            createdAt: string;
+            items: components["schemas"]["OrderItemDto"][];
         };
     };
     responses: never;
@@ -834,6 +919,127 @@ export interface operations {
             };
             /** @description Cart item not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CheckoutController_createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSessionDto"];
+                };
+            };
+            /** @description Cart is empty or contains unavailable products */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stripe could not create the Checkout Session */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CheckoutController_confirmCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCheckoutDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDto"];
+                };
+            };
+            /** @description Payment amount does not match the order */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Order not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payment has not been completed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stripe could not retrieve the Checkout Session */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrdersController_listOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDto"][];
+                };
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
