@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { or } from "@prisma/orm-postgres/orm-client";
 import { fullTextDocument, websearchToTsquery } from "@prisma/orm-postgres/target/full-text";
 import { PrismaService } from "../prisma.service.js";
@@ -6,6 +6,7 @@ import { StorageService, type ProductImageFile } from "../storage/storage.servic
 import type { CreateProductDto } from "./dto/create-product.dto.js";
 import type { ProductDto } from "./dto/product.dto.js";
 import type { ProductPageDto } from "./dto/product-page.dto.js";
+import type { UpdateProductDto } from "./dto/update-product.dto.js";
 
 type ProductRecord = {
   id: bigint | number;
@@ -47,6 +48,70 @@ export class ProductsService {
     }
 
     return this.toProductDto(product);
+  }
+
+  async update(
+    productId: bigint,
+    dto: UpdateProductDto,
+    file?: ProductImageFile,
+  ): Promise<ProductDto> {
+    const product = await this.prisma.db.orm.public.Product.first({ id: productId });
+
+    if (!product) {
+      throw new NotFoundException("Product not found");
+    }
+
+    const data: { name?: string; priceCents?: number; description?: string } = {};
+
+    if (dto.name !== undefined) {
+      data.name = dto.name;
+    }
+    if (dto.priceCents !== undefined) {
+      data.priceCents = dto.priceCents;
+    }
+    if (dto.description !== undefined) {
+      data.description = dto.description;
+    }
+
+    const hasFieldChanges = Object.keys(data).length > 0;
+
+    if (!hasFieldChanges && !file) {
+      throw new BadRequestException("No fields to update");
+    }
+
+    if (file) {
+      await this.storage.uploadProductImage(productId, file);
+    }
+
+    if (hasFieldChanges) {
+      await this.prisma.db.orm.public.Product.where({ id: productId }).update(data);
+    }
+
+    const updatedProduct = hasFieldChanges
+      ? await this.prisma.db.orm.public.Product.first({ id: productId })
+      : product;
+
+    if (!updatedProduct) {
+      throw new NotFoundException("Product not found");
+    }
+
+    return this.toProductDto(updatedProduct);
+  }
+
+  async remove(productId: bigint): Promise<void> {
+    const product = await this.prisma.db.orm.public.Product.first({ id: productId });
+
+    if (!product) {
+      throw new NotFoundException("Product not found");
+    }
+
+    await this.prisma.db.orm.public.Product.where({ id: productId }).delete();
+
+    try {
+      await this.storage.deleteProductImage(productId);
+    } catch (error) {
+      void error;
+    }
   }
 
   async list({ page, pageSize, q }: ProductListOptions): Promise<ProductPageDto> {

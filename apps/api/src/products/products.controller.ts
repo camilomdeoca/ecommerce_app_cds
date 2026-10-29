@@ -1,11 +1,15 @@
 import {
   Body,
   Controller,
+  Delete,
   FileTypeValidator,
   Get,
+  HttpCode,
+  HttpStatus,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -20,6 +24,7 @@ import {
   ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -35,6 +40,7 @@ import { CreateProductDto } from "./dto/create-product.dto.js";
 import { ListProductsQueryDto } from "./dto/list-products-query.dto.js";
 import { ProductDto } from "./dto/product.dto.js";
 import { ProductPageDto } from "./dto/product-page.dto.js";
+import { UpdateProductDto } from "./dto/update-product.dto.js";
 import { ParseBigIntPipe } from "./parse-bigint.pipe.js";
 import { ProductsService } from "./products.service.js";
 
@@ -90,6 +96,69 @@ export class ProductsController {
     file: Express.Multer.File,
   ): Promise<ProductDto> {
     return this.productsService.create(dto, file);
+  }
+
+  @Patch("admin/products/:id")
+  @UseGuards(AdminGuard)
+  @UseInterceptors(
+    FileInterceptor("image", {
+      limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
+    }),
+  )
+  @ApiCookieAuth("auth_token")
+  @ApiOperation({ summary: "Update a product" })
+  @ApiParam({ name: "id", type: String, example: "1" })
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", minLength: 1, maxLength: 120 },
+        priceCents: { type: "integer", minimum: 1 },
+        description: { type: "string", minLength: 1, maxLength: 2000 },
+        image: { type: "string", format: "binary" },
+      },
+    },
+  })
+  @ApiOkResponse({ type: ProductDto })
+  @ApiBadRequestResponse({ description: "Invalid product data or image" })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
+  @ApiNotFoundResponse({ description: "Product not found" })
+  @ApiPayloadTooLargeResponse({ description: "Image exceeds the 5 MB limit" })
+  async update(
+    @Param("id", ParseBigIntPipe) id: bigint,
+    @Body() dto: UpdateProductDto = {},
+    @UploadedFile(
+      new ParseFilePipe({
+        fileIsRequired: false,
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_IMAGE_BYTES }),
+          new FileTypeValidator({
+            fileType: ALLOWED_IMAGE_TYPE_PATTERN,
+            overrideMimeType: true,
+          }),
+        ],
+      }),
+    )
+    file?: Express.Multer.File,
+  ): Promise<ProductDto> {
+    return this.productsService.update(id, dto, file);
+  }
+
+  @Delete("admin/products/:id")
+  @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiCookieAuth("auth_token")
+  @ApiOperation({ summary: "Delete a product" })
+  @ApiParam({ name: "id", type: String, example: "1" })
+  @ApiNoContentResponse({ description: "Product deleted" })
+  @ApiBadRequestResponse({ description: "Invalid product id" })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
+  @ApiNotFoundResponse({ description: "Product not found" })
+  async remove(@Param("id", ParseBigIntPipe) id: bigint): Promise<void> {
+    await this.productsService.remove(id);
   }
 
   @Get("products")

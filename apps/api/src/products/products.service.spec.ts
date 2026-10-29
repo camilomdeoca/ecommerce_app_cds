@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PrismaService } from "../prisma.service.js";
 import type { StorageService } from "../storage/storage.service.js";
@@ -30,6 +30,7 @@ describe("ProductsService", () => {
   const create = vi.fn();
   const first = vi.fn();
   const deleteProduct = vi.fn();
+  const updateProduct = vi.fn();
   const searchAggregate = vi.fn();
   const searchAll = vi.fn();
   const searchLimit = vi.fn(() => ({ all: searchAll }));
@@ -38,7 +39,7 @@ describe("ProductsService", () => {
   const where = vi.fn((filter: unknown) =>
     typeof filter === "function"
       ? { orderBy: searchOrderBy, aggregate: searchAggregate }
-      : { delete: deleteProduct },
+      : { delete: deleteProduct, update: updateProduct },
   );
   const all = vi.fn();
   const limit = vi.fn(() => ({ all }));
@@ -46,6 +47,7 @@ describe("ProductsService", () => {
   const orderBy = vi.fn(() => ({ offset, aggregate }));
   const aggregate = vi.fn();
   const uploadProductImage = vi.fn();
+  const deleteProductImage = vi.fn();
   const getProductImageUrl = vi.fn();
   let service: ProductsService;
 
@@ -53,6 +55,7 @@ describe("ProductsService", () => {
     create.mockReset();
     first.mockReset();
     deleteProduct.mockReset();
+    updateProduct.mockReset();
     searchAggregate.mockReset();
     searchAll.mockReset();
     searchLimit.mockClear();
@@ -65,6 +68,7 @@ describe("ProductsService", () => {
     orderBy.mockClear();
     aggregate.mockReset();
     uploadProductImage.mockReset();
+    deleteProductImage.mockReset();
     getProductImageUrl.mockReset();
     getProductImageUrl.mockResolvedValue(imageUrl);
 
@@ -79,6 +83,7 @@ describe("ProductsService", () => {
     } as unknown as PrismaService;
     const storage = {
       uploadProductImage,
+      deleteProductImage,
       getProductImageUrl,
     } as unknown as StorageService;
 
@@ -132,6 +137,120 @@ describe("ProductsService", () => {
 
     expect(where).toHaveBeenCalledWith({ id: product.id });
     expect(deleteProduct).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates product fields and returns the refreshed product", async () => {
+    const updatedProduct = {
+      ...product,
+      name: "Updated backpack",
+      priceCents: 5999,
+      description: "An updated everyday backpack.",
+    };
+    first.mockResolvedValueOnce(product).mockResolvedValueOnce(updatedProduct);
+    updateProduct.mockResolvedValue(undefined);
+
+    const result = await service.update(product.id, {
+      name: updatedProduct.name,
+      priceCents: updatedProduct.priceCents,
+      description: updatedProduct.description,
+    });
+
+    expect(updateProduct).toHaveBeenCalledWith({
+      name: updatedProduct.name,
+      priceCents: updatedProduct.priceCents,
+      description: updatedProduct.description,
+    });
+    expect(result).toEqual({
+      id: "123",
+      name: updatedProduct.name,
+      priceCents: updatedProduct.priceCents,
+      description: updatedProduct.description,
+      imageUrl,
+    });
+  });
+
+  it("updates only the fields that were provided", async () => {
+    first
+      .mockResolvedValueOnce(product)
+      .mockResolvedValueOnce({ ...product, name: "Renamed backpack" });
+
+    await service.update(product.id, { name: "Renamed backpack" });
+
+    expect(updateProduct).toHaveBeenCalledWith({ name: "Renamed backpack" });
+  });
+
+  it("uploads a replacement image without changing fields", async () => {
+    first.mockResolvedValue(product);
+    uploadProductImage.mockResolvedValue(undefined);
+
+    const result = await service.update(product.id, {}, file);
+
+    expect(uploadProductImage).toHaveBeenCalledWith(product.id, file);
+    expect(updateProduct).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      id: "123",
+      name: product.name,
+      priceCents: product.priceCents,
+      description: product.description,
+      imageUrl,
+    });
+  });
+
+  it("throws 404 when updating a missing product", async () => {
+    first.mockResolvedValue(null);
+
+    await expect(service.update(999n, { name: "Missing" })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update with no fields and no image", async () => {
+    first.mockResolvedValue(product);
+
+    await expect(service.update(product.id, {})).rejects.toBeInstanceOf(BadRequestException);
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("does not update fields when the image upload fails", async () => {
+    const uploadError = new Error("S3 unavailable");
+    first.mockResolvedValue(product);
+    uploadProductImage.mockRejectedValue(uploadError);
+
+    await expect(service.update(product.id, { name: "Renamed" }, file)).rejects.toBe(uploadError);
+
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("deletes a product and its image", async () => {
+    first.mockResolvedValue(product);
+    deleteProduct.mockResolvedValue(undefined);
+    deleteProductImage.mockResolvedValue(undefined);
+
+    await service.remove(product.id);
+
+    expect(where).toHaveBeenCalledWith({ id: product.id });
+    expect(deleteProduct).toHaveBeenCalledTimes(1);
+    expect(deleteProductImage).toHaveBeenCalledWith(product.id);
+  });
+
+  it("throws 404 when deleting a missing product", async () => {
+    first.mockResolvedValue(null);
+
+    await expect(service.remove(999n)).rejects.toBeInstanceOf(NotFoundException);
+    expect(deleteProduct).not.toHaveBeenCalled();
+    expect(deleteProductImage).not.toHaveBeenCalled();
+  });
+
+  it("deletes the product even when image cleanup fails", async () => {
+    first.mockResolvedValue(product);
+    deleteProduct.mockResolvedValue(undefined);
+    deleteProductImage.mockRejectedValue(new Error("S3 unavailable"));
+
+    await expect(service.remove(product.id)).resolves.toBeUndefined();
+
+    expect(deleteProduct).toHaveBeenCalledTimes(1);
+    expect(deleteProductImage).toHaveBeenCalledWith(product.id);
   });
 
   it("lists a page of products with pagination metadata", async () => {

@@ -28,7 +28,7 @@ export function parseSearch(value: string | string[] | undefined): string {
   return rawValue?.trim().slice(0, MAX_SEARCH_LENGTH) ?? "";
 }
 
-export function getProductsPageHref(page: number, search = ""): string {
+export function getProductsPageHref(page: number, search = "", basePath = "/products"): string {
   const params = new URLSearchParams();
   const searchTerm = parseSearch(search);
 
@@ -41,7 +41,7 @@ export function getProductsPageHref(page: number, search = ""): string {
 
   const query = params.toString();
 
-  return query ? `/products?${query}` : "/products";
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 export async function getProducts(page: number, search = ""): Promise<ProductPageDto> {

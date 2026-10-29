@@ -82,6 +82,15 @@ describe("getProductsPageHref", () => {
   it("encodes search characters", () => {
     expect(getProductsPageHref(1, "mug & cup")).toBe("/products?q=mug+%26+cup");
   });
+
+  it("uses a custom base path for the admin catalog", () => {
+    expect(getProductsPageHref(1, "", "/admin")).toBe("/admin");
+    expect(getProductsPageHref(2, "", "/admin")).toBe("/admin?page=2");
+    expect(getProductsPageHref(1, "canvas backpack", "/admin")).toBe("/admin?q=canvas+backpack");
+    expect(getProductsPageHref(2, "canvas backpack", "/admin")).toBe(
+      "/admin?page=2&q=canvas+backpack",
+    );
+  });
 });
 
 describe("product API helpers", () => {

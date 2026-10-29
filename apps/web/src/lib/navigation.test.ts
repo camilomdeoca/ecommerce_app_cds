@@ -25,9 +25,10 @@ describe("isActivePath", () => {
 });
 
 describe("isSearchVisible", () => {
-  it("shows search only on product routes", () => {
+  it("shows search on catalog and admin routes", () => {
     expect(isSearchVisible("/products")).toBe(true);
     expect(isSearchVisible("/products/123")).toBe(true);
+    expect(isSearchVisible("/admin")).toBe(true);
     expect(isSearchVisible("/cart")).toBe(false);
     expect(isSearchVisible("/orders")).toBe(false);
   });

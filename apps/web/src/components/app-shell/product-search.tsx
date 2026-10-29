@@ -31,11 +31,12 @@ export function ProductSearch() {
       return;
     }
 
-    const href = getProductsPageHref(1, nextSearch);
+    const basePath = pathname.startsWith("/admin") ? "/admin" : "/products";
+    const href = getProductsPageHref(1, nextSearch, basePath);
     initiatedQueriesRef.current.add(nextSearch);
 
     startTransition(() => {
-      if (pathname === "/products") {
+      if (pathname === basePath) {
         router.replace(href, { scroll: false });
       } else {
         router.push(href);

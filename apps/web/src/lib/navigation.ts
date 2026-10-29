@@ -10,7 +10,7 @@ const BASE_NAV_ITEMS: readonly NavItem[] = [
 
 const ADMIN_NAV_ITEM: NavItem = { label: "Admin", href: "/admin" };
 
-const SEARCH_PATHS = ["/products"] as const;
+const SEARCH_PATHS = ["/products", "/admin"] as const;
 
 export function getNavItems(isAdmin: boolean): NavItem[] {
   return isAdmin ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM] : [...BASE_NAV_ITEMS];

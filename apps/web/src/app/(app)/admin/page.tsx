@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { AdminProductCatalog } from "@/components/admin/admin-product-catalog";
 import { ProductCreateCard } from "@/components/admin/product-create-card";
 import { PagePlaceholder } from "@/components/page-placeholder";
+import { ProductGridSkeleton } from "@/components/products/product-skeletons";
 import { getCurrentUser } from "@/lib/auth";
 
-async function AdminProductSection() {
+type AdminPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+async function AdminProductSection({ searchParams }: AdminPageProps) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -15,17 +21,24 @@ async function AdminProductSection() {
     redirect("/");
   }
 
-  return <ProductCreateCard />;
+  return (
+    <div className="flex w-full flex-col gap-8">
+      <ProductCreateCard />
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Products</h2>
+        <Suspense fallback={<ProductGridSkeleton />}>
+          <AdminProductCatalog searchParams={searchParams} />
+        </Suspense>
+      </section>
+    </div>
+  );
 }
 
-export default function AdminPage() {
+export default function AdminPage({ searchParams }: AdminPageProps) {
   return (
-    <PagePlaceholder
-      title="Admin"
-      description="Admin tools will appear here for users with an admin role."
-    >
+    <PagePlaceholder title="Admin" description="Create and manage the product catalog.">
       <Suspense fallback={<p className="text-muted">Loading admin tools...</p>}>
-        <AdminProductSection />
+        <AdminProductSection searchParams={searchParams} />
       </Suspense>
     </PagePlaceholder>
   );

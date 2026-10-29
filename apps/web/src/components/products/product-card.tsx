@@ -1,11 +1,17 @@
 import { Card } from "@heroui/react";
 import Image from "next/image";
 import NextLink from "next/link";
+import type { ReactNode } from "react";
 import type { ProductDto } from "@/lib/api/products";
 import { formatPriceCents } from "@/lib/product-price";
 import { AddToCartButton } from "./add-to-cart-button";
 
-export function ProductCard({ product }: { product: ProductDto }) {
+type ProductCardProps = {
+  product: ProductDto;
+  action?: ReactNode;
+};
+
+export function ProductCard({ product, action }: ProductCardProps) {
   return (
     <Card className="group h-full overflow-hidden">
       <NextLink
@@ -33,7 +39,9 @@ export function ProductCard({ product }: { product: ProductDto }) {
         <p className="line-clamp-2 text-sm text-muted">{product.description}</p>
       </Card.Content>
       <Card.Footer>
-        <AddToCartButton className="w-full" productId={product.id} productName={product.name} />
+        {action ?? (
+          <AddToCartButton className="w-full" productId={product.id} productName={product.name} />
+        )}
       </Card.Footer>
     </Card>
   );

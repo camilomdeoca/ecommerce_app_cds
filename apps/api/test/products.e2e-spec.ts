@@ -15,6 +15,11 @@ const pngBuffer = Buffer.from(
   "base64",
 );
 
+const replacementPngBuffer = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+  "base64",
+);
+
 type ProductListBody = {
   items: Array<{ id: string; imageUrl: string }>;
   page: number;
@@ -101,6 +106,42 @@ describe("Products (e2e)", () => {
 
     return requestBuilder;
   };
+
+  const patchProduct = (
+    agent: ReturnType<typeof request.agent>,
+    productId: string,
+    overrides: {
+      name?: string;
+      priceCents?: string;
+      description?: string;
+      imageBuffer?: Buffer;
+      imageType?: string;
+      filename?: string;
+    } = {},
+  ) => {
+    const requestBuilder = agent.patch(`/api/v1/admin/products/${productId}`);
+
+    if (overrides.name !== undefined) {
+      requestBuilder.field("name", overrides.name);
+    }
+    if (overrides.priceCents !== undefined) {
+      requestBuilder.field("priceCents", overrides.priceCents);
+    }
+    if (overrides.description !== undefined) {
+      requestBuilder.field("description", overrides.description);
+    }
+    if (overrides.imageBuffer) {
+      requestBuilder.attach("image", overrides.imageBuffer, {
+        filename: overrides.filename ?? "product.png",
+        contentType: overrides.imageType ?? "image/png",
+      });
+    }
+
+    return requestBuilder;
+  };
+
+  const deleteProduct = (agent: ReturnType<typeof request.agent>, productId: string) =>
+    agent.delete(`/api/v1/admin/products/${productId}`);
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -240,6 +281,202 @@ describe("Products (e2e)", () => {
     const imageBody = Buffer.from(await imageResponse.arrayBuffer());
 
     expect(imageBody.equals(pngBuffer)).toBe(true);
+  });
+
+  it("rejects unauthenticated and customer product updates", async () => {
+    const adminAgent = await createAdminAgent();
+    const response = await postProduct(adminAgent, {
+      name: `E2E update auth product ${randomUUID()}`,
+      priceCents: "1000",
+      description: "Update auth product",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const product = response.body as { id: string };
+    createdProductIds.push(BigInt(product.id));
+
+    await patchProduct(request(app.getHttpServer()), product.id, {
+      name: "Unauthenticated update",
+    }).expect(401);
+
+    const customerEmail = createEmail();
+    const { agent: customerAgent } = await signup(customerEmail);
+
+    await patchProduct(customerAgent, product.id, { name: "Customer update" }).expect(403);
+  });
+
+  it("updates product fields and replaces the image", async () => {
+    const adminAgent = await createAdminAgent();
+    const createResponse = await postProduct(adminAgent, {
+      name: `E2E update product ${randomUUID()}`,
+      priceCents: "1000",
+      description: "Original description",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const created = createResponse.body as { id: string };
+    const productId = BigInt(created.id);
+    createdProductIds.push(productId);
+
+    const updatedName = `E2E updated product ${randomUUID()}`;
+    const response = await patchProduct(adminAgent, created.id, {
+      name: `  ${updatedName}  `,
+      priceCents: "2599",
+      description: "  Updated description  ",
+      imageBuffer: replacementPngBuffer,
+    }).expect(200);
+    const product = response.body as {
+      id: string;
+      name: string;
+      priceCents: number;
+      description: string;
+      imageUrl: string;
+    };
+
+    expect(product).toMatchObject({
+      id: created.id,
+      name: updatedName,
+      priceCents: 2599,
+      description: "Updated description",
+    });
+
+    await expect(
+      s3.send(
+        new HeadObjectCommand({
+          Bucket: bucket,
+          Key: getProductImageKey(productId),
+        }),
+      ),
+    ).resolves.toMatchObject({ ContentType: "image/png" });
+
+    const imageResponse = await fetch(product.imageUrl);
+
+    expect(imageResponse.status).toBe(200);
+    expect(imageResponse.headers.get("content-type")).toContain("image/png");
+    const imageBody = Buffer.from(await imageResponse.arrayBuffer());
+
+    expect(imageBody.equals(replacementPngBuffer)).toBe(true);
+
+    const detailResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products/${created.id}`)
+      .expect(200);
+
+    expect(detailResponse.body).toMatchObject({
+      id: created.id,
+      name: updatedName,
+      priceCents: 2599,
+      description: "Updated description",
+    });
+  });
+
+  it("updates only provided fields and keeps the existing image", async () => {
+    const adminAgent = await createAdminAgent();
+    const createResponse = await postProduct(adminAgent, {
+      name: `E2E partial update ${randomUUID()}`,
+      priceCents: "1500",
+      description: "Original description",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const created = createResponse.body as { id: string };
+    createdProductIds.push(BigInt(created.id));
+
+    const updatedName = `E2E partial renamed ${randomUUID()}`;
+    const response = await patchProduct(adminAgent, created.id, { name: updatedName }).expect(200);
+    const product = response.body as {
+      name: string;
+      priceCents: number;
+      description: string;
+      imageUrl: string;
+    };
+
+    expect(product).toMatchObject({
+      name: updatedName,
+      priceCents: 1500,
+      description: "Original description",
+    });
+
+    const imageResponse = await fetch(product.imageUrl);
+
+    expect(imageResponse.status).toBe(200);
+    const imageBody = Buffer.from(await imageResponse.arrayBuffer());
+
+    expect(imageBody.equals(pngBuffer)).toBe(true);
+  });
+
+  it("rejects invalid product updates", async () => {
+    const adminAgent = await createAdminAgent();
+    const createResponse = await postProduct(adminAgent, {
+      name: `E2E invalid update ${randomUUID()}`,
+      priceCents: "1000",
+      description: "Invalid update product",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const created = createResponse.body as { id: string };
+    createdProductIds.push(BigInt(created.id));
+
+    await patchProduct(adminAgent, "not-a-number", { name: "Bad id" }).expect(400);
+    await patchProduct(adminAgent, "999999999", { name: "Missing product" }).expect(404);
+    await patchProduct(adminAgent, created.id).expect(400);
+    await patchProduct(adminAgent, created.id, { name: "" }).expect(400);
+    await patchProduct(adminAgent, created.id, {
+      imageBuffer: Buffer.from("not an image"),
+      imageType: "text/plain",
+      filename: "bad.txt",
+    }).expect(400);
+    await patchProduct(adminAgent, created.id, {
+      imageBuffer: Buffer.alloc(MAX_IMAGE_BYTES + 1),
+    }).expect(413);
+  });
+
+  it("rejects unauthenticated and customer product deletes", async () => {
+    const adminAgent = await createAdminAgent();
+    const response = await postProduct(adminAgent, {
+      name: `E2E delete auth product ${randomUUID()}`,
+      priceCents: "1000",
+      description: "Delete auth product",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const product = response.body as { id: string };
+    createdProductIds.push(BigInt(product.id));
+
+    await deleteProduct(request(app.getHttpServer()), product.id).expect(401);
+
+    const { agent: customerAgent } = await signup(createEmail());
+
+    await deleteProduct(customerAgent, product.id).expect(403);
+  });
+
+  it("deletes a product and its image", async () => {
+    const adminAgent = await createAdminAgent();
+    const response = await postProduct(adminAgent, {
+      name: `E2E delete product ${randomUUID()}`,
+      priceCents: "1000",
+      description: "Delete product",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const product = response.body as { id: string };
+    const productId = BigInt(product.id);
+    createdProductIds.push(productId);
+
+    await deleteProduct(adminAgent, product.id).expect(204);
+
+    await expect(prisma.db.orm.public.Product.first({ id: productId })).resolves.toBeNull();
+
+    await expect(
+      s3.send(
+        new HeadObjectCommand({
+          Bucket: bucket,
+          Key: getProductImageKey(productId),
+        }),
+      ),
+    ).rejects.toMatchObject({ $metadata: { httpStatusCode: 404 } });
+
+    await request(app.getHttpServer()).get(`/api/v1/products/${product.id}`).expect(404);
+  });
+
+  it("rejects invalid product deletes", async () => {
+    const adminAgent = await createAdminAgent();
+
+    await deleteProduct(adminAgent, "not-a-number").expect(400);
+    await deleteProduct(adminAgent, "999999999").expect(404);
   });
 
   it("lists products with pagination and presigned image URLs", async () => {

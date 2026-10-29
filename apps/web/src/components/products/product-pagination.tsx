@@ -7,12 +7,19 @@ type ProductPaginationProps = {
   search?: string;
   total: number;
   totalPages: number;
+  basePath?: string;
 };
 
 const paginationLinkClassName = cn(buttonVariants({ variant: "secondary", size: "sm" }));
 const disabledLinkClassName = cn(paginationLinkClassName, "pointer-events-none opacity-50");
 
-export function ProductPagination({ page, search, total, totalPages }: ProductPaginationProps) {
+export function ProductPagination({
+  page,
+  search,
+  total,
+  totalPages,
+  basePath,
+}: ProductPaginationProps) {
   if (totalPages <= 1) {
     return null;
   }
@@ -32,7 +39,7 @@ export function ProductPagination({ page, search, total, totalPages }: ProductPa
         {hasPreviousPage ? (
           <NextLink
             className={paginationLinkClassName}
-            href={getProductsPageHref(page - 1, search)}
+            href={getProductsPageHref(page - 1, search, basePath)}
           >
             Previous
           </NextLink>
@@ -47,7 +54,7 @@ export function ProductPagination({ page, search, total, totalPages }: ProductPa
         {hasNextPage ? (
           <NextLink
             className={paginationLinkClassName}
-            href={getProductsPageHref(page + 1, search)}
+            href={getProductsPageHref(page + 1, search, basePath)}
           >
             Next
           </NextLink>
