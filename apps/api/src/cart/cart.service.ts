@@ -11,6 +11,7 @@ type CartProductRecord = {
   name: string;
   priceCents: number;
   description: string;
+  active: boolean;
 };
 
 type CartItemRecord = {
@@ -42,7 +43,7 @@ export class CartService {
 
   async addItem(userId: number, dto: AddCartItemDto): Promise<CartDto> {
     const productId = BigInt(dto.productId);
-    const product = await this.prisma.db.orm.public.Product.first({ id: productId });
+    const product = await this.prisma.db.orm.public.Product.first({ id: productId, active: true });
 
     if (!product) {
       throw new NotFoundException("Product not found");
@@ -105,6 +106,7 @@ export class CartService {
         name: item.product.name,
         priceCents: item.product.priceCents,
         description: item.product.description,
+        active: item.product.active,
         imageUrl: await this.storage.getProductImageUrl(BigInt(item.product.id)),
       },
       quantity: item.quantity,

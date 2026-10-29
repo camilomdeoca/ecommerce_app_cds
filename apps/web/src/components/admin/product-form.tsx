@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Label, NumberField, TextArea, TextField } from "@heroui/react";
+import { Button, Input, Label, NumberField, Switch, TextArea, TextField } from "@heroui/react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { apiClient } from "@/lib/api/client";
@@ -25,6 +25,7 @@ type UpdateProductBody = {
   name?: string;
   priceCents?: number;
   description?: string;
+  active?: boolean;
   image?: string;
 };
 
@@ -81,6 +82,7 @@ export function useProductForm(options: ProductFormOptions) {
     product ? product.priceCents / 100 : undefined,
   );
   const [description, setDescription] = useState(product?.description ?? "");
+  const [active, setActive] = useState(product?.active ?? true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(product?.imageUrl ?? null);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -200,6 +202,8 @@ export function useProductForm(options: ProductFormOptions) {
       }
 
       if (options.mode === "edit") {
+        formData.append("active", String(active));
+
         const result = await apiClient.PATCH("/api/v1/admin/products/{id}", {
           params: { path: { id: options.product.id } },
           body: formData as unknown as UpdateProductBody,
@@ -249,6 +253,8 @@ export function useProductForm(options: ProductFormOptions) {
     setPriceDollars,
     description,
     setDescription,
+    active,
+    setActive,
     imageFile,
     previewUrl,
     errors,
@@ -328,6 +334,22 @@ export function ProductFormFields({ form }: { form: ProductFormState }) {
           </p>
         ) : null}
       </TextField>
+
+      {form.isEdit ? (
+        <div className="flex flex-col gap-2">
+          <Switch isSelected={form.active} onChange={form.setActive}>
+            <Switch.Content>
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              Active
+            </Switch.Content>
+          </Switch>
+          <p className="text-sm text-muted">
+            Inactive products are hidden from the public catalog.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Image</span>

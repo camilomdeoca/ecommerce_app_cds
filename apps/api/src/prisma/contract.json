@@ -122,6 +122,13 @@
           },
           "Product": {
             "fields": {
+              "active": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "description": {
                 "nullable": false,
                 "type": {
@@ -154,6 +161,9 @@
             "relations": {},
             "storage": {
               "fields": {
+                "active": {
+                  "column": "active"
+                },
                 "description": {
                   "column": "description"
                 },
@@ -344,6 +354,15 @@
             },
             "Product": {
               "columns": {
+                "active": {
+                  "codecId": "pg/bool@1",
+                  "dataType": "pg/bool",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nullable": false
+                },
                 "description": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -452,7 +471,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "40bdbbb38158de4e603cddaeaa4db429d006eb501b7eafc061af9ebe06f74dbb"
+    "storageHash": "c2505d61448cbf451c44608c9d0cb7fa434ac47ffc3ade99f7c15bcf7ccb77da"
   },
   "capabilities": {
     "postgres": {

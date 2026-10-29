@@ -1,9 +1,20 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
-import { IsInt, IsString, MaxLength, Min, MinLength, ValidateIf } from "class-validator";
+import { IsBoolean, IsInt, IsString, MaxLength, Min, MinLength, ValidateIf } from "class-validator";
 
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === "string" ? value.trim() : value;
+
+const toBoolean = ({ value }: { value: unknown }): unknown => {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+};
 
 const isProvided = (_object: unknown, value: unknown): boolean => value !== undefined;
 
@@ -35,4 +46,10 @@ export class UpdateProductDto {
   @MinLength(1)
   @MaxLength(2000)
   description?: string;
+
+  @ApiPropertyOptional({ type: Boolean, example: true })
+  @ValidateIf(isProvided)
+  @Transform(toBoolean)
+  @IsBoolean()
+  active?: boolean;
 }

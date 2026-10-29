@@ -9,6 +9,7 @@ const product = {
   name: "Canvas backpack",
   priceCents: 4999,
   description: "A durable everyday backpack.",
+  active: true,
 };
 
 const cartItem = {
@@ -92,6 +93,7 @@ describe("CartService", () => {
             name: product.name,
             priceCents: product.priceCents,
             description: product.description,
+            active: true,
             imageUrl,
           },
           quantity: 2,
@@ -111,7 +113,7 @@ describe("CartService", () => {
 
     const result = await service.addItem(7, { productId: "123", quantity: 2 });
 
-    expect(productFirst).toHaveBeenCalledWith({ id: product.id });
+    expect(productFirst).toHaveBeenCalledWith({ id: product.id, active: true });
     expect(cartFirst).toHaveBeenCalledWith({ userId: 7, productId: product.id });
     expect(cartCreate).toHaveBeenCalledWith({
       userId: 7,
@@ -133,12 +135,13 @@ describe("CartService", () => {
     expect(cartCreate).not.toHaveBeenCalled();
   });
 
-  it("rejects adding a product that does not exist", async () => {
+  it("rejects adding a missing or inactive product", async () => {
     productFirst.mockResolvedValue(null);
 
-    await expect(service.addItem(7, { productId: "999", quantity: 1 })).rejects.toBeInstanceOf(
+    await expect(service.addItem(7, { productId: "123", quantity: 1 })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+    expect(productFirst).toHaveBeenCalledWith({ id: product.id, active: true });
     expect(cartFirst).not.toHaveBeenCalled();
   });
 

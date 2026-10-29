@@ -21,7 +21,7 @@ const replacementPngBuffer = Buffer.from(
 );
 
 type ProductListBody = {
-  items: Array<{ id: string; imageUrl: string }>;
+  items: Array<{ id: string; imageUrl: string; active: boolean }>;
   page: number;
   pageSize: number;
   total: number;
@@ -114,6 +114,7 @@ describe("Products (e2e)", () => {
       name?: string;
       priceCents?: string;
       description?: string;
+      active?: string;
       imageBuffer?: Buffer;
       imageType?: string;
       filename?: string;
@@ -129,6 +130,9 @@ describe("Products (e2e)", () => {
     }
     if (overrides.description !== undefined) {
       requestBuilder.field("description", overrides.description);
+    }
+    if (overrides.active !== undefined) {
+      requestBuilder.field("active", overrides.active);
     }
     if (overrides.imageBuffer) {
       requestBuilder.attach("image", overrides.imageBuffer, {
@@ -236,6 +240,7 @@ describe("Products (e2e)", () => {
       name: string;
       priceCents: number;
       description: string;
+      active: boolean;
       imageUrl: string;
     };
 
@@ -244,6 +249,7 @@ describe("Products (e2e)", () => {
       name,
       priceCents: 4999,
       description: "A durable everyday backpack.",
+      active: true,
     });
 
     const productId = BigInt(product.id);
@@ -328,6 +334,7 @@ describe("Products (e2e)", () => {
       name: string;
       priceCents: number;
       description: string;
+      active: boolean;
       imageUrl: string;
     };
 
@@ -336,6 +343,7 @@ describe("Products (e2e)", () => {
       name: updatedName,
       priceCents: 2599,
       description: "Updated description",
+      active: true,
     });
 
     await expect(
@@ -401,6 +409,59 @@ describe("Products (e2e)", () => {
     expect(imageBody.equals(pngBuffer)).toBe(true);
   });
 
+  it("deactivates products and hides them from public endpoints", async () => {
+    const adminAgent = await createAdminAgent();
+    const name = `E2E inactive product ${randomUUID()}`;
+    const createResponse = await postProduct(adminAgent, {
+      name,
+      priceCents: "1000",
+      description: "An inactive product",
+      imageBuffer: pngBuffer,
+    }).expect(201);
+    const created = createResponse.body as { id: string; active: boolean };
+    createdProductIds.push(BigInt(created.id));
+
+    expect(created.active).toBe(true);
+
+    const updateResponse = await patchProduct(adminAgent, created.id, {
+      active: "false",
+    }).expect(200);
+
+    expect(updateResponse.body).toMatchObject({ id: created.id, active: false });
+
+    const publicSearchResponse = await request(app.getHttpServer())
+      .get(`/api/v1/products?q=${encodeURIComponent(name)}`)
+      .expect(200);
+    const publicSearchBody = publicSearchResponse.body as ProductListBody;
+
+    expect(publicSearchBody.items.map((item) => item.id)).not.toContain(created.id);
+
+    await request(app.getHttpServer()).get(`/api/v1/products/${created.id}`).expect(404);
+
+    const adminSearchResponse = await adminAgent
+      .get(`/api/v1/admin/products?q=${encodeURIComponent(name)}`)
+      .expect(200);
+    const adminSearchBody = adminSearchResponse.body as ProductListBody;
+
+    expect(adminSearchBody.items).toEqual([
+      expect.objectContaining({ id: created.id, active: false }),
+    ]);
+
+    const { agent: customerAgent } = await signup(createEmail());
+
+    await customerAgent
+      .post("/api/v1/cart/items")
+      .send({ productId: created.id, quantity: 1 })
+      .expect(404);
+
+    const reactivateResponse = await patchProduct(adminAgent, created.id, {
+      active: "true",
+    }).expect(200);
+
+    expect(reactivateResponse.body).toMatchObject({ id: created.id, active: true });
+    await request(app.getHttpServer()).get(`/api/v1/products/${created.id}`).expect(200);
+  });
+
   it("rejects invalid product updates", async () => {
     const adminAgent = await createAdminAgent();
     const createResponse = await postProduct(adminAgent, {
@@ -416,6 +477,7 @@ describe("Products (e2e)", () => {
     await patchProduct(adminAgent, "999999999", { name: "Missing product" }).expect(404);
     await patchProduct(adminAgent, created.id).expect(400);
     await patchProduct(adminAgent, created.id, { name: "" }).expect(400);
+    await patchProduct(adminAgent, created.id, { active: "not-a-boolean" }).expect(400);
     await patchProduct(adminAgent, created.id, {
       imageBuffer: Buffer.from("not an image"),
       imageType: "text/plain",
@@ -477,6 +539,18 @@ describe("Products (e2e)", () => {
 
     await deleteProduct(adminAgent, "not-a-number").expect(400);
     await deleteProduct(adminAgent, "999999999").expect(404);
+  });
+
+  it("requires an administrator to list all products", async () => {
+    await request(app.getHttpServer()).get("/api/v1/admin/products").expect(401);
+
+    const { agent: customerAgent } = await signup(createEmail());
+
+    await customerAgent.get("/api/v1/admin/products").expect(403);
+
+    const adminAgent = await createAdminAgent();
+
+    await adminAgent.get("/api/v1/admin/products").expect(200);
   });
 
   it("lists products with pagination and presigned image URLs", async () => {

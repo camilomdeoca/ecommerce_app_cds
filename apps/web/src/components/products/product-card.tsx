@@ -26,6 +26,14 @@ export function ProductCard({ product, action }: ProductCardProps) {
           src={product.imageUrl}
           unoptimized
         />
+        {!product.active ? (
+          <>
+            <span aria-hidden className="pointer-events-none absolute inset-0 bg-default/60" />
+            <span className="absolute left-2 top-2 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium text-foreground">
+              Inactive
+            </span>
+          </>
+        ) : null}
       </NextLink>
       <Card.Header className="gap-1">
         <Card.Title className="line-clamp-2 text-base">

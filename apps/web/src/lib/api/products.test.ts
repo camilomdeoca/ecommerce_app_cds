@@ -14,6 +14,7 @@ const product: ProductDto = {
   name: "Canvas backpack",
   priceCents: 4999,
   description: "A durable everyday backpack.",
+  active: true,
   imageUrl: "http://localhost:8333/media/products/7/image?X-Amz-Signature=test",
 };
 

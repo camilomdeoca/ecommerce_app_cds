@@ -2,7 +2,8 @@ import NextLink from "next/link";
 import { redirect } from "next/navigation";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductPagination } from "@/components/products/product-pagination";
-import { getProducts, getProductsPageHref, parsePage, parseSearch } from "@/lib/api/products";
+import { getAdminProducts } from "@/lib/api/admin-products";
+import { getProductsPageHref, parsePage, parseSearch } from "@/lib/api/products";
 import { ProductDeleteAction } from "./product-delete-action";
 import { ProductEditAction } from "./product-edit-action";
 
@@ -37,7 +38,7 @@ export async function AdminProductCatalog({ searchParams }: AdminProductCatalogP
   const query = await searchParams;
   const page = parsePage(query.page);
   const search = parseSearch(query.q);
-  const products = await getProducts(page, search);
+  const products = await getAdminProducts(page, search);
   const lastPage = Math.max(1, products.totalPages);
 
   if (page > lastPage) {

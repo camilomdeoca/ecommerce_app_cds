@@ -95,7 +95,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List all products for administrators */
+        get: operations["ProductsController_listForAdmin"];
         put?: never;
         /** Create a product */
         post: operations["ProductsController_create"];
@@ -243,6 +244,8 @@ export interface components {
             priceCents: number;
             /** @example A durable everyday backpack. */
             description: string;
+            /** @example true */
+            active: boolean;
             /** @example http://localhost:8333/media/products/1/image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=... */
             imageUrl: string;
         };
@@ -409,6 +412,49 @@ export interface operations {
             };
         };
     };
+    ProductsController_listForAdmin: {
+        parameters: {
+            query?: {
+                /** @description Searches product names and descriptions, most relevant first */
+                q?: string;
+                pageSize?: number;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductPageDto"];
+                };
+            };
+            /** @description Invalid pagination or search parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ProductsController_create: {
         parameters: {
             query?: never;
@@ -525,6 +571,7 @@ export interface operations {
                     name?: string;
                     priceCents?: number;
                     description?: string;
+                    active?: boolean;
                     /** Format: binary */
                     image?: string;
                 };

@@ -9,6 +9,7 @@ const product = {
   name: "Canvas backpack",
   priceCents: 4999,
   description: "A durable everyday backpack.",
+  active: true,
 };
 
 const secondProduct = {
@@ -16,6 +17,7 @@ const secondProduct = {
   name: "Travel mug",
   priceCents: 1999,
   description: "A leak-proof mug.",
+  active: true,
 };
 
 const file = {
@@ -39,7 +41,7 @@ describe("ProductsService", () => {
   const where = vi.fn((filter: unknown) =>
     typeof filter === "function"
       ? { orderBy: searchOrderBy, aggregate: searchAggregate }
-      : { delete: deleteProduct, update: updateProduct },
+      : { delete: deleteProduct, update: updateProduct, orderBy, aggregate },
   );
   const all = vi.fn();
   const limit = vi.fn(() => ({ all }));
@@ -115,6 +117,7 @@ describe("ProductsService", () => {
       name: product.name,
       priceCents: product.priceCents,
       description: product.description,
+      active: true,
       imageUrl,
     });
   });
@@ -165,6 +168,7 @@ describe("ProductsService", () => {
       name: updatedProduct.name,
       priceCents: updatedProduct.priceCents,
       description: updatedProduct.description,
+      active: true,
       imageUrl,
     });
   });
@@ -192,8 +196,18 @@ describe("ProductsService", () => {
       name: product.name,
       priceCents: product.priceCents,
       description: product.description,
+      active: true,
       imageUrl,
     });
+  });
+
+  it("updates the active flag", async () => {
+    first.mockResolvedValueOnce(product).mockResolvedValueOnce({ ...product, active: false });
+
+    const result = await service.update(product.id, { active: false });
+
+    expect(updateProduct).toHaveBeenCalledWith({ active: false });
+    expect(result.active).toBe(false);
   });
 
   it("throws 404 when updating a missing product", async () => {
@@ -262,6 +276,7 @@ describe("ProductsService", () => {
 
     const result = await service.list({ page: 2, pageSize: 10 });
 
+    expect(where).toHaveBeenCalledWith({ active: true });
     expect(orderBy).toHaveBeenCalledTimes(1);
     expect(offset).toHaveBeenCalledWith(10);
     expect(limit).toHaveBeenCalledWith(10);
@@ -273,6 +288,7 @@ describe("ProductsService", () => {
           name: product.name,
           priceCents: product.priceCents,
           description: product.description,
+          active: true,
           imageUrl: "http://localhost:8333/media/products/123/image",
         },
         {
@@ -280,6 +296,7 @@ describe("ProductsService", () => {
           name: secondProduct.name,
           priceCents: secondProduct.priceCents,
           description: secondProduct.description,
+          active: true,
           imageUrl: "http://localhost:8333/media/products/124/image",
         },
       ],
@@ -288,6 +305,18 @@ describe("ProductsService", () => {
       total: 25,
       totalPages: 3,
     });
+  });
+
+  it("includes inactive products in admin listings", async () => {
+    const inactiveProduct = { ...secondProduct, active: false };
+    all.mockResolvedValue([product, inactiveProduct]);
+    aggregate.mockResolvedValue({ total: 2 });
+
+    const result = await service.list({ page: 1, pageSize: 12, includeInactive: true });
+
+    expect(where).not.toHaveBeenCalled();
+    expect(orderBy).toHaveBeenCalledTimes(1);
+    expect(result.items[1]?.active).toBe(false);
   });
 
   it("searches names and descriptions with filtered totals and relevance ordering", async () => {
@@ -319,7 +348,7 @@ describe("ProductsService", () => {
 
     await service.list({ page: 1, pageSize: 12, q: "   " });
 
-    expect(where).not.toHaveBeenCalled();
+    expect(where).toHaveBeenCalledWith({ active: true });
     expect(orderBy).toHaveBeenCalledTimes(1);
   });
 
@@ -343,12 +372,13 @@ describe("ProductsService", () => {
 
     const result = await service.getById(product.id);
 
-    expect(first).toHaveBeenCalledWith({ id: product.id });
+    expect(first).toHaveBeenCalledWith({ id: product.id, active: true });
     expect(result).toEqual({
       id: "123",
       name: product.name,
       priceCents: product.priceCents,
       description: product.description,
+      active: true,
       imageUrl,
     });
   });

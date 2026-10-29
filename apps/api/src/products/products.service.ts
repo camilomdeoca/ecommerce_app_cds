@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { or } from "@prisma/orm-postgres/orm-client";
+import { and, or } from "@prisma/orm-postgres/orm-client";
 import { fullTextDocument, websearchToTsquery } from "@prisma/orm-postgres/target/full-text";
 import { PrismaService } from "../prisma.service.js";
 import { StorageService, type ProductImageFile } from "../storage/storage.service.js";
@@ -13,12 +13,14 @@ type ProductRecord = {
   name: string;
   priceCents: number;
   description: string;
+  active: boolean;
 };
 
 export type ProductListOptions = {
   page: number;
   pageSize: number;
   q?: string;
+  includeInactive?: boolean;
 };
 
 @Injectable()
@@ -61,7 +63,12 @@ export class ProductsService {
       throw new NotFoundException("Product not found");
     }
 
-    const data: { name?: string; priceCents?: number; description?: string } = {};
+    const data: {
+      name?: string;
+      priceCents?: number;
+      description?: string;
+      active?: boolean;
+    } = {};
 
     if (dto.name !== undefined) {
       data.name = dto.name;
@@ -71,6 +78,9 @@ export class ProductsService {
     }
     if (dto.description !== undefined) {
       data.description = dto.description;
+    }
+    if (dto.active !== undefined) {
+      data.active = dto.active;
     }
 
     const hasFieldChanges = Object.keys(data).length > 0;
@@ -114,12 +124,21 @@ export class ProductsService {
     }
   }
 
-  async list({ page, pageSize, q }: ProductListOptions): Promise<ProductPageDto> {
+  async list({
+    page,
+    pageSize,
+    q,
+    includeInactive = false,
+  }: ProductListOptions): Promise<ProductPageDto> {
     const offset = (page - 1) * pageSize;
     const searchTerm = q?.trim();
     const collection = searchTerm
-      ? this.searchProducts(searchTerm)
-      : this.prisma.db.orm.public.Product.orderBy((product) => product.id.desc());
+      ? this.searchProducts(searchTerm, includeInactive)
+      : includeInactive
+        ? this.prisma.db.orm.public.Product.orderBy((product) => product.id.desc())
+        : this.prisma.db.orm.public.Product.where({ active: true }).orderBy((product) =>
+            product.id.desc(),
+          );
     const [products, totals] = await Promise.all([
       collection.offset(offset).limit(pageSize).all(),
       collection.aggregate((aggregate) => ({
@@ -137,13 +156,15 @@ export class ProductsService {
     };
   }
 
-  private searchProducts(searchTerm: string) {
+  private searchProducts(searchTerm: string, includeInactive = false) {
     const pattern = toLikePattern(searchTerm);
     const query = websearchToTsquery(searchTerm);
 
-    return this.prisma.db.orm.public.Product.where((product) =>
-      or(product.name.ilike(pattern), product.description.ilike(pattern)),
-    ).orderBy([
+    return this.prisma.db.orm.public.Product.where((product) => {
+      const matchesSearch = or(product.name.ilike(pattern), product.description.ilike(pattern));
+
+      return includeInactive ? matchesSearch : and(product.active.eq(true), matchesSearch);
+    }).orderBy([
       (product, { fns }) =>
         fns.fullTextRank(fullTextDocument([[product.name], [product.description]]), query).desc(),
       (product) => product.id.desc(),
@@ -151,7 +172,7 @@ export class ProductsService {
   }
 
   async getById(productId: bigint): Promise<ProductDto> {
-    const product = await this.prisma.db.orm.public.Product.first({ id: productId });
+    const product = await this.prisma.db.orm.public.Product.first({ id: productId, active: true });
 
     if (!product) {
       throw new NotFoundException("Product not found");
@@ -166,6 +187,7 @@ export class ProductsService {
       name: product.name,
       priceCents: product.priceCents,
       description: product.description,
+      active: product.active,
       imageUrl: await this.storage.getProductImageUrl(BigInt(product.id)),
     };
   }

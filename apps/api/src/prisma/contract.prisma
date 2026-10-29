@@ -14,10 +14,11 @@ model User {
 }
 
 model Product {
-  id          BigInt @id @default(autoincrement())
+  id          BigInt  @id @default(autoincrement())
   name        String
   priceCents  Int
   description String
+  active      Boolean @default(true)
 }
 
 model CartItem {

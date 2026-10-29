@@ -6,7 +6,7 @@ export const MAX_SEARCH_LENGTH = 100;
 export type ProductDto = components["schemas"]["ProductDto"];
 export type ProductPageDto = components["schemas"]["ProductPageDto"];
 
-function getApiUrl(): string {
+export function getApiUrl(): string {
   return process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 }
 

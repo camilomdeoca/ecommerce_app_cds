@@ -203,6 +203,70 @@
         "tags": [
           "products"
         ]
+      },
+      "get": {
+        "operationId": "ProductsController_listForAdmin",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Searches product names and descriptions, most relevant first",
+            "schema": {
+              "maxLength": 100,
+              "example": "backpack",
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 12,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or search parameters"
+          },
+          "401": {
+            "description": ""
+          },
+          "403": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "auth_token": []
+          }
+        ],
+        "summary": "List all products for administrators",
+        "tags": [
+          "products"
+        ]
       }
     },
     "/api/v1/admin/products/{id}": {
@@ -239,6 +303,9 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 2000
+                  },
+                  "active": {
+                    "type": "boolean"
                   },
                   "image": {
                     "type": "string",
@@ -700,6 +767,10 @@
             "type": "string",
             "example": "A durable everyday backpack."
           },
+          "active": {
+            "type": "boolean",
+            "example": true
+          },
           "imageUrl": {
             "type": "string",
             "example": "http://localhost:8333/media/products/1/image?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=..."
@@ -710,6 +781,7 @@
           "name",
           "priceCents",
           "description",
+          "active",
           "imageUrl"
         ]
       },

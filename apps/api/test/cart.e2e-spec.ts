@@ -9,7 +9,13 @@ import { PrismaService } from "./../src/prisma.service.js";
 
 type CartBody = {
   items: Array<{
-    product: { id: string; name: string; priceCents: number; imageUrl: string };
+    product: {
+      id: string;
+      name: string;
+      priceCents: number;
+      active: boolean;
+      imageUrl: string;
+    };
     quantity: number;
     lineTotalCents: number;
   }>;
@@ -116,7 +122,7 @@ describe("Cart (e2e)", () => {
     expect(firstCart.items[0]).toMatchObject({
       quantity: 1,
       lineTotalCents: product.priceCents,
-      product: { id: product.id.toString(), name: product.name },
+      product: { id: product.id.toString(), name: product.name, active: true },
     });
     expect(firstCart.items[0]?.product.imageUrl).toContain(`/media/products/${product.id}/image`);
     expect(firstCart.totalQuantity).toBe(1);
@@ -172,6 +178,28 @@ describe("Cart (e2e)", () => {
     const removeResponse = await agent.delete(`/api/v1/cart/items/${product.id}`).expect(200);
 
     expect(removeResponse.body).toEqual({ items: [], totalQuantity: 0, totalCents: 0 });
+  });
+
+  it("keeps inactive products in existing carts but rejects new additions", async () => {
+    const { agent } = await signup();
+    const product = await createProduct();
+
+    await agent.post("/api/v1/cart/items").send({ productId: product.id.toString() }).expect(200);
+
+    await prisma.db.orm.public.Product.where({ id: product.id }).update({ active: false });
+
+    const cartResponse = await agent.get("/api/v1/cart").expect(200);
+    const cart = cartResponse.body as CartBody;
+
+    expect(cart.items[0]?.product).toMatchObject({
+      id: product.id.toString(),
+      active: false,
+    });
+
+    await agent
+      .post("/api/v1/cart/items")
+      .send({ productId: product.id.toString(), quantity: 1 })
+      .expect(404);
   });
 
   it("rejects invalid products, quantities, and missing cart items", async () => {

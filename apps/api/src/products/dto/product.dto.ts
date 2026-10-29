@@ -13,6 +13,9 @@ export class ProductDto {
   @ApiProperty({ type: String, example: "A durable everyday backpack." })
   description!: string;
 
+  @ApiProperty({ type: Boolean, example: true })
+  active!: boolean;
+
   @ApiProperty({
     type: String,
     example:

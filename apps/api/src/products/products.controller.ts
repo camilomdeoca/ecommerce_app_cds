@@ -116,6 +116,7 @@ export class ProductsController {
         name: { type: "string", minLength: 1, maxLength: 120 },
         priceCents: { type: "integer", minimum: 1 },
         description: { type: "string", minLength: 1, maxLength: 2000 },
+        active: { type: "boolean" },
         image: { type: "string", format: "binary" },
       },
     },
@@ -159,6 +160,28 @@ export class ProductsController {
   @ApiNotFoundResponse({ description: "Product not found" })
   async remove(@Param("id", ParseBigIntPipe) id: bigint): Promise<void> {
     await this.productsService.remove(id);
+  }
+
+  @Get("admin/products")
+  @UseGuards(AdminGuard)
+  @ApiCookieAuth("auth_token")
+  @ApiOperation({ summary: "List all products for administrators" })
+  @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
+  @ApiQuery({ name: "pageSize", required: false, type: Number, example: 12 })
+  @ApiQuery({
+    name: "q",
+    required: false,
+    type: String,
+    maxLength: 100,
+    example: "backpack",
+    description: "Searches product names and descriptions, most relevant first",
+  })
+  @ApiOkResponse({ type: ProductPageDto })
+  @ApiBadRequestResponse({ description: "Invalid pagination or search parameters" })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
+  async listForAdmin(@Query() query: ListProductsQueryDto): Promise<ProductPageDto> {
+    return this.productsService.list({ ...query, includeInactive: true });
   }
 
   @Get("products")
