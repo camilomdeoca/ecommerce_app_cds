@@ -3,6 +3,7 @@
 import { Button, cn } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { revalidateCart } from "@/lib/actions/cart";
 import { apiClient } from "@/lib/api/client";
 
 type AddToCartButtonProps = {
@@ -60,6 +61,7 @@ export function AddToCartButton({ productId, productName, className }: AddToCart
       }
 
       setStatus("added");
+      await revalidateCart().catch(() => undefined);
     } catch {
       setStatus("idle");
       setError("Could not add this product. Please try again.");
